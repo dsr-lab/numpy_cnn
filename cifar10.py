@@ -34,7 +34,7 @@ class Cifar10:
         os.makedirs(dataset_path, exist_ok=True)
         return dataset_path
 
-    def download_dataset(self, dataset_path, url):
+    def download_dataset(self, dataset_path):
 
         # Official url taken from https://www.cs.toronto.edu/~kriz/cifar.html
         url = "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
@@ -67,7 +67,7 @@ class Cifar10:
                           'cifar-10-batches-py/test_batch']
         # There are 60000 images. Each image is 3x32x32 = 3072
         # There are 60000 labels
-        images = np.zeros(shape=(60000, 3072))
+        images = np.zeros(shape=(60000, 3, 32, 32))
         labels = np.zeros(shape=(60000,))
         # Process each file and append images and labels to the
         # correct array
@@ -79,7 +79,10 @@ class Cifar10:
                 file_images = dictionary.get(b'data')
                 file_labels = dictionary.get(b'labels')
 
-                images[idx * 10000:10000 * (idx + 1)] = file_images / 255.0
+                file_images = file_images / 255
+                file_images = file_images.reshape(10000, 3, 32, 32)
+
+                images[idx * 10000:10000 * (idx + 1)] = file_images
                 labels[idx * 10000:10000 * (idx + 1)] = file_labels
         # Split into train and test
         self.train_images, self.test_images = images[:50000], images[50000:]

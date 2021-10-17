@@ -11,13 +11,13 @@ def show_test_image(images, labels, classes):
     print('Selected index: {} - Class: {}'
           .format(idx, classes[selected_class_idx]))
 
-    img = images[idx].reshape(3, 32, 32)
+    img = images[idx]
     show_image(img)
 
 
 def main():
     dataset = Cifar10()
-
+    print(dataset.train_images[0].shape)
     show_test_image(dataset.train_images, dataset.train_labels, dataset.classes)
 
 
