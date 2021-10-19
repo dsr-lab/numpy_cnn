@@ -1,10 +1,6 @@
 import numpy as np
-from PIL import Image
 
-from utils import show_image, show_gray_scale_image
-
-
-def test_convolution2():
+def test_convolution():
     data = [
         [[3, 1, 7, 2, 5], [5, 1, 0, 9, 2], [8, 2, 4, 9, 3], [4, 3, 1, 1, 4]],
         [[3, 1, 7, 2, 5], [9, 1, 0, 3, 2], [5, 2, 4, 8, 3], [4, 3, 1, 1, 4]],
@@ -20,57 +16,10 @@ def test_convolution2():
 
     edge_detection_kernel = edge_detection_kernel.reshape((1, 1, 3, 3))
 
-    res = convolve_2d(data, edge_detection_kernel, padding=1, stride=2)
+    res = convolve_2d(data, edge_detection_kernel, padding=pad, stride=2)
     res = np.squeeze(res, axis=0)
     print(res)
     print()
-
-
-def test_convolution():
-    img = Image.open("tests/sample.jpeg")
-    data = np.transpose(img, (2, 0, 1))
-    data = np.asarray(data, dtype="int32")
-
-    show_image(data)
-
-    a = data.shape
-    # The convolution layer could process more than one image per time
-    # depending on the batch size
-    data = np.expand_dims(data, axis=0)
-
-    # X = np.array([[1, 0, 0], [1, 2, 3], [3, 4, 5], [7, 7, 7], [8, 8, 8], [9, 9, 9]])
-    # X = X.reshape(2, 1, 3, 3)
-
-    # conv1 = np.array([[1, 0], [0, 1]])
-    # conv1 = conv1.reshape(1, 1, 2, 2)
-
-    edge_detection_kernel = np.array([
-        [[5, 5, 5], [-3, 0, -3], [-3, -3, -3]],  # horizontal
-        [[5, -3, -3], [5, 0, -3], [5, -3, -3]],  # vertical
-        [[0, -1, 0], [-1, 5, -1], [0, -1, 0]],   # sobel
-        [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
-    ]
-
-    )
-    # kernel should be flipped. Actually not relevant for NN
-    # edge_detection_kernel = np.flipud(np.fliplr(edge_detection_kernel))
-    edge_detection_kernel = edge_detection_kernel.reshape((4, 1, 3, 3))
-
-    print(edge_detection_kernel[0, :, :, :])
-    print(edge_detection_kernel[1, :, :, :])
-    print(edge_detection_kernel[2, :, :, :])
-    print(edge_detection_kernel[3, :, :, :])
-
-    res = convolve_2d(data, edge_detection_kernel, padding=1)
-
-    res = np.squeeze(res, axis=0)
-    a = res.shape
-    # res = np.squeeze(res, axis=0) # squeeze in case of only 1 image.
-
-    show_gray_scale_image(res[0, :, :])
-    show_gray_scale_image(res[1, :, :])
-    show_gray_scale_image(res[2, :, :])
-    show_gray_scale_image(res[3, :, :])
 
 
 # numberOfFilters, out_channels, kernel_size, stride
@@ -95,6 +44,7 @@ def convolve_2d(images, kernel, padding=0, stride=1):
     for image_idx in range(images.shape[0]):
         # Extract a single image
         current_image = images[image_idx, :, :, :]
+        # Apply padding
         current_image = np.pad(current_image, ((0, 0), (padding, padding), (padding, padding)), mode='constant')
 
         # Cycle all the filters in the convolutional layer
@@ -128,6 +78,7 @@ def convolve_2d(images, kernel, padding=0, stride=1):
                         if image_portion.shape[2] < kernel_w:
                             continue
                         else:
+                            # Perform the dot product
                             inner_result = np.multiply(filter_selected, image_portion)
                             print(i, j)
                             print(image_rectangle.shape[2])

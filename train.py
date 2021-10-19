@@ -8,14 +8,12 @@ from max_pooling import *
 from utils import *
 
 
-
 def show_test_image(images, labels, classes):
     idx = random.randint(0, 10000)
     selected_class_idx = int(labels[idx])
 
+    test_max_pool()
     #test_convolution()
-    #testMaxPool()
-    test_convolution2()
 
 
     '''
