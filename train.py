@@ -9,11 +9,10 @@ from max_pooling import *
 from relu import ReLU
 from softmax import *
 from utils import *
+from cross_entropy import *
 
 
 def show_test_image(images, labels, classes):
-    idx = random.randint(0, 10000)
-    selected_class_idx = int(labels[idx])
 
     #test_max_pool()
     #test_convolution()
@@ -22,7 +21,15 @@ def show_test_image(images, labels, classes):
     # Kernel for the convolution layer
     kernel = init_random_kernel()
 
-    input_data = np.asarray([images[0], images[2]])
+    input_data = np.asarray([images[0], images[1]])
+    input_labels = np.asarray([labels[0], labels[1]])
+
+    # One hot encoding
+    one_hot_encoding_labels = np.zeros((input_labels.size, 10))
+    for i in range(input_labels.shape[0]):
+        position = int(input_labels[i])
+        one_hot_encoding_labels[i, position] = 1
+    one_hot_encoding_labels = one_hot_encoding_labels.T
 
     x = convolve_2d(input_data, kernel)
     x = ReLU(x)
@@ -43,6 +50,9 @@ def show_test_image(images, labels, classes):
 
     # Finally apply the softmax
     scores = softmax(fc2_output)
+
+    ce = cross_entropy(scores, one_hot_encoding_labels)
+
     predicted_class = np.argmax(scores, axis=0)
     print(scores.shape)
     print('predicted class: {}'.format(predicted_class))
