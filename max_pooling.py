@@ -11,16 +11,14 @@ def test_max_pool():
         [[3, 1, 7, 2, 5], [9, 1, 0, 3, 2], [5, 2, 4, 8, 3], [4, 3, 1, 1, 4]],
         [[3, 1, 7, 2, 5], [5, 1, 0, 9, 2], [8, 2, 4, 9, 3], [4, 3, 1, 1, 4]]
     ]
-    data = np.asarray(data, dtype=np.float32)
+    data = np.asarray(data, dtype=np.float64)
     data = np.expand_dims(data, axis=0)
     pad = 0
 
     new_img = maxPool(data, filter_h=2, filter_w=2, stride=2, padding=pad)
     # new_img = np.squeeze(new_img, axis=0)
     new_img = np.squeeze(new_img, axis=0)
-    new_img = np.asarray(new_img, dtype=np.float32)
-
-    print(new_img.shape)
+    new_img = np.asarray(new_img, dtype=np.float64)
 
 
 def maxPool(input_images, stride=2, filter_h=2, filter_w=2, padding=0):
@@ -53,7 +51,6 @@ def maxPool(input_images, stride=2, filter_h=2, filter_w=2, padding=0):
 
 
 def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w):
-    print('image.shape: {}'.format(image.shape))
 
     # Init the maxpool matrix result with zero values
     maxpool_result = np.zeros((

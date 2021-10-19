@@ -14,9 +14,11 @@ class Cifar10:
         self.train_labels = None
         self.test_labels = None
 
-        self.classes = ('plane', 'car', 'bird', 'cat',
-                        'deer', 'dog', 'frog', 'horse',
-                        'ship', 'truck')
+        self.classes = (
+            'plane', 'car', 'bird', 'cat',
+            'deer', 'dog', 'frog', 'horse',
+            'ship', 'truck'
+        )
 
         self.__init_dataset()
 

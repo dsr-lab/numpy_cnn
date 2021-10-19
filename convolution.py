@@ -1,18 +1,19 @@
 import numpy as np
 
+
 def test_convolution():
     data = [
         [[3, 1, 7, 2, 5], [5, 1, 0, 9, 2], [8, 2, 4, 9, 3], [4, 3, 1, 1, 4]],
         [[3, 1, 7, 2, 5], [9, 1, 0, 3, 2], [5, 2, 4, 8, 3], [4, 3, 1, 1, 4]],
         [[3, 1, 7, 2, 5], [5, 1, 0, 9, 2], [8, 2, 4, 9, 3], [4, 3, 1, 1, 4]]
     ]
-    data = np.asarray(data, dtype=np.float32)
+    data = np.asarray(data, dtype=np.float64)
     data = np.expand_dims(data, axis=0)
     pad = 1
 
     edge_detection_kernel = np.array([
         [[0, -1, 0], [-1, 5, -1], [0, -1, 0]]  # sobel
-    ], dtype=np.float32)
+    ], dtype=np.float64)
 
     edge_detection_kernel = edge_detection_kernel.reshape((1, 1, 3, 3))
 
@@ -22,8 +23,13 @@ def test_convolution():
     print()
 
 
+def init_random_kernel(input_channels=1, output_channels=2, kernel_h=3, kernel_w=3):
+    return np.random.rand(output_channels, input_channels, kernel_h, kernel_w) * np.sqrt(1./3.)
+
+
 # numberOfFilters, out_channels, kernel_size, stride
 def convolve_2d(images, kernel, padding=0, stride=1):
+
     output_channels = kernel.shape[0]
     input_channels = kernel.shape[1]
     kernel_h = kernel.shape[2]
@@ -80,8 +86,6 @@ def convolve_2d(images, kernel, padding=0, stride=1):
                         else:
                             # Perform the dot product
                             inner_result = np.multiply(filter_selected, image_portion)
-                            print(i, j)
-                            print(image_rectangle.shape[2])
                             convolution_result[image_idx, filter_position, output_h_idx, output_w_idx] = \
                                 np.sum(inner_result)
                             output_w_idx += 1
