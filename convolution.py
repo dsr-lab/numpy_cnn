@@ -23,10 +23,11 @@ def test_convolution():
     print()
 
 
-def init_random_kernel(input_channels=1, output_channels=2, kernel_h=3, kernel_w=3):
-    #return np.random.rand(output_channels, input_channels, kernel_h, kernel_w) * np.sqrt(1./3.)
-    return np.ones((output_channels, input_channels, kernel_h, kernel_w)) * 2
-
+def init_random_kernel(input_channels=1, output_channels=2, kernel_h=3, kernel_w=3, random=True):
+    if random:
+        return np.random.rand(output_channels, input_channels, kernel_h, kernel_w) * np.sqrt(1./3.)
+    else:
+        return np.ones((output_channels, input_channels, kernel_h, kernel_w)) * 2
 
 # Actually is a cross-correlation (no kernel flip)
 # numberOfFilters, out_channels, kernel_size, stride
@@ -96,34 +97,33 @@ def convolve_2d(images, kernel, padding=0, stride=1):
     return convolution_result
 
 
-def backprop_test():
-    X = [
-        [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
-         [[3, 1, 7, 2], [9, 1, 0, 3], [5, 2, 4, 8], [4, 3, 1, 1]],
-         [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]]
-    ]
+def backprop_test(X, kernel, gradient_values):
     # X = [
-    #     [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]]
+    #     [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
+    #      [[3, 1, 7, 2], [9, 1, 0, 3], [5, 2, 4, 8], [4, 3, 1, 1]],
+    #      [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]]
     # ]
-    X = np.asarray(X, dtype=np.float64)
-    X_shape = X.shape
-    kernel = init_random_kernel(kernel_h=2, kernel_w=2)
-    convolution_result = convolve_2d(X, kernel)
-    convolution_result_shape = convolution_result.shape
-    gradient_values = [
-        [[[3, 1], [5, 1]],
-         [[3, 1], [9, 1]]]
-    ]
-    gradient_values = [
-        [[[3, 1, 4], [5, 1, 7], [5, 1, 7]],
-         [[1, 2, 3], [1, 0, 2], [9, 1, 1]]
-         ]
-    ]
-    gradient_values = np.asarray(gradient_values, dtype=np.float64)
-    gradient_values_shape = gradient_values.shape
+    #
+    # X = np.asarray(X, dtype=np.float64)
+    # X_shape = X.shape
+    # kernel = init_random_kernel(kernel_h=2, kernel_w=2)
+    # convolution_result = convolve_2d(X, kernel)
+    # convolution_result_shape = convolution_result.shape
+    # gradient_values = [
+    #     [[[3, 1], [5, 1]],
+    #      [[3, 1], [9, 1]]]
+    # ]
+    # gradient_values = [
+    #     [[[3, 1, 4], [5, 1, 7], [5, 1, 7]],
+    #      [[1, 2, 3], [1, 0, 2], [9, 1, 1]]
+    #      ]
+    # ]
+    # gradient_values = np.asarray(gradient_values, dtype=np.float64)
+    # gradient_values_shape = gradient_values.shape
+
     dW = backprop(gradient_values, X, kernel)
 
-    print()
+    return dW
 
 # gradient_values coming from the backproagation in progress
 # X original input of the layer
@@ -171,10 +171,9 @@ def backprop(gradient_values, X, kernel, padding=0, stride=1):
                         if image_portion.shape[2] < kernel_w:
                             continue
                         else:
-                            out = np.zeros((kernel_h, kernel_w))
+                            # Each channel in the input must be considered independently
                             for channel in range(image_portion.shape[0]):
-                                out += image_portion[channel, :, :] * gradient_values[image_idx, filter_position, i, j]
-                            #out = image_portion * gradient_values[image_idx, filter_position, i, j]
-                            dW[filter_position] += out
+                                out = image_portion[channel, :, :] * gradient_values[image_idx, filter_position, i, j]
+                                dW[filter_position, channel, :, :] += out
 
     return dW

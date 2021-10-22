@@ -4,6 +4,7 @@ from caffe2.python.helpers.pooling import max_pool
 
 from cifar10 import Cifar10
 from convolution import *
+from convolution_to_delete import *
 from flatten import flatten
 from max_pooling import *
 from relu import ReLU
@@ -34,6 +35,7 @@ def show_test_image(images, labels, classes):
     # Forward Pass
     # ####################
     x = convolve_2d(input_data, kernel)
+    a = x.shape
     x = ReLU(x)
     x, pos_maxpool_result = maxPool(x)
     x = flatten(x)
@@ -89,10 +91,11 @@ def main():
     # show_test_image(dataset.train_images, dataset.train_labels, dataset.classes)
 
     # show_test_image()
-    #max_pool_backprop_test()
-    backprop_test()
+    # max_pool_backprop_test()
+    # backprop_test()
 
-    print()
+    convolution_comparisons()
+
 
 if __name__ == '__main__':
     main()
