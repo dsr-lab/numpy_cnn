@@ -153,7 +153,7 @@ def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w
             if image_rectangle.shape[0] < filter_h:
                 continue
             else:
-                for width in range(0, image_rectangle.shape[1], stride):
+                for width in range(0, image_rectangle.shape[2], stride):
                     image_portion = image_rectangle[:, width:width + filter_w]
                     if image_portion.shape[1] < filter_w:
                         continue

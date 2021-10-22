@@ -89,10 +89,10 @@ def main():
     # show_test_image(dataset.train_images, dataset.train_labels, dataset.classes)
 
     # show_test_image()
-    max_pool_backprop_test()
+    #max_pool_backprop_test()
+    backprop_test()
 
     print()
-
 
 if __name__ == '__main__':
     main()
