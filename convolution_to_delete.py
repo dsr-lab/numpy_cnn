@@ -3,7 +3,7 @@ import numpy as np
 from convolution import *
 
 
-def convolution_comparisons():
+def convolution_method_comparisons():
 
     # 2 images, 3 channels and 4x4 size image
     # NOTE: Kernel MUST have 3 input channels
@@ -54,7 +54,7 @@ def convolution_comparisons():
     gradient_values = np.asarray(gradient_values, dtype=np.float64)
 
     a = test_conv_back(X, kernel, gradient_values)
-    b = backprop_test(X, kernel, gradient_values)
+    b = backprop(X, kernel, gradient_values)
 
     if (convolution_result == convolution_result2).all():
         print("CONV EQUAL")

@@ -94,7 +94,7 @@ def main():
     # max_pool_backprop_test()
     # backprop_test()
 
-    convolution_comparisons()
+    convolution_method_comparisons()
 
 
 if __name__ == '__main__':
