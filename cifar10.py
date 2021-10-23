@@ -4,6 +4,8 @@ import tarfile
 import urllib.request
 import numpy as np
 
+from utils import show_image
+
 
 class Cifar10:
 
@@ -13,6 +15,8 @@ class Cifar10:
         self.test_images = None
         self.train_labels = None
         self.test_labels = None
+        self.validation_images = None
+        self.validation_labels = None
 
         self.classes = (
             'plane', 'car', 'bird', 'cat',
@@ -89,6 +93,27 @@ class Cifar10:
         # Split into train and test
         self.train_images, self.test_images = images[:50000], images[50000:]
         self.train_labels, self.test_labels = labels[:50000], labels[50000:]
+
+        # Shuffle the train set
+        permutation_indices = np.random.permutation(len(self.train_images))
+        self.train_images = self.train_images[permutation_indices]
+        self.train_labels = self.train_labels[permutation_indices]
+
+        # Normalize with mean and std
+        mean_train = self.train_images.mean(axis=(0, 2, 3), keepdims=True)
+        std_train = self.train_images.std(axis=(0, 2, 3), keepdims=True)
+        self.train_images = (self.train_images - mean_train) / std_train
+
+        mean_test = self.test_images.mean(axis=(0, 2, 3), keepdims=True)
+        std_test = self.test_images.std(axis=(0, 2, 3), keepdims=True)
+        self.test_images = (self.test_images - mean_test) / std_test
+
+        # Create the validation set
+        self.validation_images = self.train_images[45000:]
+        self.validation_labels = self.train_labels[45000:]
+
+        self.train_images = self.train_images[:45000]
+        self.train_labels = self.train_labels[:45000]
 
     @staticmethod
     def __download_progress(block_num, block_size, total_size):

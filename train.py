@@ -12,6 +12,7 @@ from softmax import *
 from utils import *
 from cross_entropy import *
 
+BATCH_SIZE = 128
 
 def show_test_image(images, labels, classes):
     # test_max_pool()
