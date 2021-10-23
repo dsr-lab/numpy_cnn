@@ -120,3 +120,9 @@ class Cifar10:
         downloaded = block_num * block_size
         percentage = downloaded * 100 / total_size
         print('\r Download progress: {:.2f}%'.format(percentage), end='', flush=True)
+
+    def get_small_datasets(self):
+        return \
+            self.train_images[:500], self.train_labels[:500],  \
+            self.validation_images[:100], self.validation_labels[:100], \
+            self.test_images[:100], self.test_labels[:100]
