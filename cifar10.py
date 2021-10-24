@@ -115,6 +115,9 @@ class Cifar10:
         self.train_images = self.train_images[:45000]
         self.train_labels = self.train_labels[:45000]
 
+        a = self.train_labels
+        print()
+
     @staticmethod
     def __download_progress(block_num, block_size, total_size):
         downloaded = block_num * block_size

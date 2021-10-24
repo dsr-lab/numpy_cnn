@@ -71,7 +71,7 @@ def convolve_2d(images, kernel, padding=0, stride=1):
 
 # gradient_values coming from the backproagation in progress
 # X original input of the layer
-def backprop(X, kernel, gradient_values, padding=0, stride=1):
+def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
 
     output_channels = kernel.shape[0]
     input_channels = kernel.shape[1]
@@ -123,9 +123,16 @@ def backprop(X, kernel, gradient_values, padding=0, stride=1):
     return dW
 
 
-def init_random_kernel(input_channels=1, output_channels=2, kernel_h=3, kernel_w=3, random=True):
+def init_random_kernel(input_channels=3, output_channels=2, kernel_h=3, kernel_w=3, random=True):
+
     if random:
-        return np.random.rand(output_channels, input_channels, kernel_h, kernel_w) * np.sqrt(1./3.)
+        # return np.random.rand(output_channels, input_channels, kernel_h, kernel_w) * np.sqrt(1./3.)
+        n = input_channels
+        for k in (kernel_h, kernel_w):
+            n *= k
+        stdv = 1. / np.sqrt(n)
+        return np.random.uniform(low=-stdv, high=stdv, size=(output_channels, input_channels, kernel_h, kernel_w))
+
     else:
         return np.ones((output_channels, input_channels, kernel_h, kernel_w)) * 2
 

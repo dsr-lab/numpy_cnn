@@ -36,8 +36,11 @@ def test_max_pool():
     new_img_shape = new_img.shape
     # new_img = np.squeeze(new_img, axis=0)
     new_img = np.asarray(new_img, dtype=np.float64)
+    pos_result = np.asarray(pos_result, dtype=np.int32)
+
 
     # delta_conv = np.multiply(delta_conv, dReLU(X_conv))
+    print()
 
 
 def max_pool_backprop_test():
@@ -65,7 +68,7 @@ def max_pool_backprop_test():
     # 2) the positional indices saved during forward pass with
     #    the positions of max values
     # 3) the shape expected from the convolutional layer
-    maxpool_gradients = backprop(bp, maxpool_pos_indices, conv_data.shape)
+    maxpool_gradients = maxpool_backprop(bp, maxpool_pos_indices, conv_data.shape)
     print()
 
 
@@ -99,7 +102,7 @@ def maxPool(input_images, stride=2, filter_h=2, filter_w=2, padding=0):
     return maxpool_result, pos_result
 
 
-def backprop(gradient_values, pos_result, conv_shape):
+def maxpool_backprop(gradient_values, pos_result, conv_shape):
     delta_conv = np.zeros(conv_shape)
     delta_conv_shape = delta_conv.shape
     for image in range(len(pos_result)):
@@ -116,8 +119,6 @@ def backprop(gradient_values, pos_result, conv_shape):
             b = p[1]
             c = gradient_values[image, p[0], p[3], p[4]]
 
-            # the second part must be changed with delta_maxpool, which is the delta_0 unflattened
-            # during the backpropagation
             delta_conv[image, p[0], p[1], p[2]] = gradient_values[image, p[0], p[3], p[4]]
     return delta_conv
 
@@ -150,10 +151,11 @@ def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w
 
             # get a portion of the image
             image_rectangle = image[channel, height:height + filter_h, :]
+            image_rectangle_shape = image_rectangle.shape
             if image_rectangle.shape[0] < filter_h:
                 continue
             else:
-                for width in range(0, image_rectangle.shape[2], stride):
+                for width in range(0, image_rectangle.shape[1], stride):
                     image_portion = image_rectangle[:, width:width + filter_w]
                     if image_portion.shape[1] < filter_w:
                         continue

@@ -6,7 +6,6 @@ matplotlib.use("TkAgg")
 
 
 def show_gray_scale_image(image, title=None):
-
     a = image.shape
     # initially (3, 32, 32), pyplot expects (32, 32, 3)
     plt.imshow(image, cmap='gray')
@@ -18,7 +17,7 @@ def show_gray_scale_image(image, title=None):
 
 
 def show_image(image, title=None):
-    #npimg = image.numpy()
+    # npimg = image.numpy()
 
     # initially (3, 32, 32), pyplot expects (32, 32, 3)
     plt.imshow(np.transpose(image, (1, 2, 0)))
@@ -27,3 +26,15 @@ def show_image(image, title=None):
 
     if title is not None:
         plt.title(title)
+
+
+def accuracy(predictions, labels):
+
+    n_samples = len(labels)
+    n_correct = (labels == predictions).sum()
+
+    acc = n_correct / n_samples
+
+
+    return acc
+

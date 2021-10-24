@@ -8,8 +8,8 @@ def flatten(x):
     for idx in range(x.shape[0]):
         image = x[idx, :, :, :]
         image = image.flatten().reshape(-1,)
-        a = image.shape
-        print(image.shape)
+        # a = image.shape
+        # print(image.shape)
         flatten_result[:, idx] = image
 
         # row = x[idx]
