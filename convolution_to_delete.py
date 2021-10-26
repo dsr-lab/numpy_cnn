@@ -86,41 +86,89 @@ def error_layer_reshape(error_layer):
     return test_array_new
 
 
-def im2col(X, conv1, stride, pad):
-    """
-        Transforms our input image into a matrix.
+def get_indices(X_shape, filter_h, filter_w, stride, pad):
 
-        Parameters:
-        - X: input image.
-        - HF: filter height.
-        - WF: filter width.
-        - stride: stride value.
-        - pad: padding value.
+    # Input size
+    n_images, channels, image_h, image_w = X_shape
 
-        Returns:
-        -cols: output matrix.
-    """
-    # Padding
-    X_padded = np.pad(X, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
-    X = X_padded
-    new_height = int((X.shape[2] + (2 * pad) - (conv1.shape[2])) / stride) + 1
-    new_width = int((X.shape[3] + (2 * pad) - (conv1.shape[3])) / stride) + 1
-    im2col_vector = np.zeros((X.shape[1] * conv1.shape[2] * conv1.shape[3], new_width * new_height * X.shape[0]))
-    c = 0
-    for position in range(X.shape[0]):
+    # Output size
+    out_h = int((image_h + 2 * pad - filter_h) / stride) + 1
+    out_w = int((image_w + 2 * pad - filter_w) / stride) + 1
 
-        image_position = X[position, :, :, :]
-        for height in range(0, image_position.shape[1], stride):
-            image_rectangle = image_position[:, height:height + conv1.shape[2], :]
-            if image_rectangle.shape[1] < conv1.shape[2]:
-                continue
-            else:
-                for width in range(0, image_rectangle.shape[2], stride):
-                    image_square = image_rectangle[:, :, width:width + conv1.shape[3]]
-                    if image_square.shape[2] < conv1.shape[3]:
-                        continue
-                    else:
-                        im2col_vector[:, c:c + 1] = image_square.reshape(-1, 1)
-                        c = c + 1
+    # ##############################
+    # Row indices
+    # ##############################
 
-    return im2col_vector
+    # Create the starting point for rows indices
+    # The goal is to create an array that has:
+    # - values that go from 0 to (filter_h - 1)
+    # - repeat the above values (filter_w - 1) times
+    #
+    # Example 1:
+    #   filter_h = filter_w = 2
+    #   a = np.arange(filter_h) = [0, 1]
+    #   np.repeat(a) = [0, 0, 1, 1]
+    #
+    # Example 2:
+    #   filter_h = 3, filter_w = 2
+    #   a = np.arange(filter_h) = [0, 1, 2]
+    #   np.repeat(a) = [0, 0, 1, 1, 2, 2]
+    row_indices_vector_0 = np.repeat(np.arange(filter_h), filter_w)
+
+    # Repeat based on the number of channels
+    # Example:
+    #   filter_h = filter_w = 2, channels = 3
+    #   a = np.arange(filter_h) = [0, 1]
+    #   b = np.repeat(a) = [0, 0, 1, 1]
+    #   np.tile(b, channels) = [[0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
+
+    row_indices_vector_0 = np.tile(row_indices_vector_0, channels)
+
+    # Create the vector that is used for summing 1 after each level of the
+    # convolution operation
+    sum_vector = stride * np.repeat(np.arange(out_h), out_w)
+
+    # At this point we need to sum rows_indices_vector_0 with the sum_vector.
+    # Notice that:
+    # - rows_indices_vector_0 is reshaped to a single column
+    # - sum_vector is reshaped to a single row
+    row_indices = row_indices_vector_0.reshape(-1, 1) + sum_vector.reshape(1, -1)
+
+    # ##############################
+    # Column indices
+    # ##############################
+
+    # As before, create the initial vector required for column indices
+    # Differently from before, when we slide horizontally the filter we have
+    # to increase the index a number of times equal to (filter_h-1)
+    column_indices_vector_0 = np.tile(np.arange(filter_h), filter_w)
+    column_indices_vector_0 = np.tile(column_indices_vector_0, channels)
+
+    # Create the sum vector
+    sum_vector = stride * np.tile(np.arange(out_h), out_w)
+
+    # Sum the two vectors
+    column_indices = column_indices_vector_0.reshape(-1, 1) + sum_vector.reshape(1, -1)
+
+    # ----Compute matrix of index d----
+
+    # Matrix required for considering different channels while considering
+    # the row_indices and column_indices variables
+    channel_matrix = np.repeat(np.arange(channels), filter_h * filter_w).reshape(-1, 1)
+
+    return row_indices, column_indices, channel_matrix
+
+
+def im2col_(images, filter_h, filter_w, stride, pad):
+
+    # Apply the padding
+    padded_images = np.pad(images, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
+    row_indices, col_indices, channel_matrix = get_indices(images.shape, filter_h, filter_w, stride, pad)
+
+    # Apply the indexing to all the images, creating a new matrix for each image
+    image_matrices = padded_images[:, channel_matrix, row_indices, col_indices]
+
+    # Create a single matrix that considers all the images concatenating along the last axis
+    image_matrices = np.concatenate(cols, axis=-1)
+
+    return image_matrices
