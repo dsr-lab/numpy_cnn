@@ -169,6 +169,6 @@ def im2col_(images, filter_h, filter_w, stride, pad):
     image_matrices = padded_images[:, channel_matrix, row_indices, col_indices]
 
     # Create a single matrix that considers all the images concatenating along the last axis
-    image_matrices = np.concatenate(cols, axis=-1)
+    image_matrices = np.concatenate(image_matrices, axis=-1)
 
     return image_matrices
