@@ -54,7 +54,7 @@ def convolution_method_comparisons():
     gradient_values = np.asarray(gradient_values, dtype=np.float64)
 
     a = test_conv_back(X, kernel, gradient_values)
-    b = backprop(X, kernel, gradient_values)
+    b = convolution_backprop(X, kernel, gradient_values)
 
     if (convolution_result == convolution_result2).all():
         print("CONV EQUAL")

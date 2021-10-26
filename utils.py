@@ -28,13 +28,14 @@ def show_image(image, title=None):
         plt.title(title)
 
 
-def accuracy(predictions, labels):
+def accuracy(scores, labels):
+    n_samples = scores.shape[1]
 
-    n_samples = len(labels)
+    predictions = np.argmax(scores, axis=0)
+
     n_correct = (labels == predictions).sum()
 
     acc = n_correct / n_samples
-
 
     return acc
 

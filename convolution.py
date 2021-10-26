@@ -123,7 +123,7 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
     return dW
 
 
-def init_random_kernel(input_channels=3, output_channels=2, kernel_h=3, kernel_w=3, random=True):
+def init_random_kernel(input_channels=3, output_channels=16, kernel_h=5, kernel_w=5, random=True):
 
     if random:
         # return np.random.rand(output_channels, input_channels, kernel_h, kernel_w) * np.sqrt(1./3.)

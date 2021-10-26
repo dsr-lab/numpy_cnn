@@ -16,10 +16,13 @@ def test_softmax():
 def softmax(scores):
     scores = np.asarray(scores, dtype=np.float64)
 
-    denominator = np.sum(np.e ** scores, axis=1)
-    denominator = np.expand_dims(denominator, axis=1)
+    #denominator = np.sum(np.e ** scores, axis=1)
+    #denominator = np.expand_dims(denominator, axis=1)
 
-    softmax_result = np.power(np.e, scores)
-    softmax_result = np.divide(softmax_result, denominator)
+    #softmax_result = np.power(np.e, scores)
+    #softmax_result = np.divide(softmax_result, denominator)
 
-    return softmax_result
+    e_x = np.exp(scores - np.max(scores))
+    return e_x / e_x.sum(axis=0)
+
+    #return softmax_result
