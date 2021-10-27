@@ -155,6 +155,38 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
     return dW
 
 
+def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride=1):
+
+    # Get required variables from the kernel shape
+    out_channels, in_channels, kernel_h, kernel_w = kernel.shape
+
+    X_col = im2col_(inputs, kernel_h, kernel_w, stride, padding)
+    w_col = kernel.reshape((out_channels, -1))
+
+    m, _, _, _ = inputs.shape
+
+    # Compute bias gradient.
+    #self.b['grad'] = np.sum(gradient_values, axis=(0, 2, 3))
+    # Reshape dout properly.
+    w_col_shape = w_col.shape
+    gradient_values_shape = gradient_values.shape
+    dout = gradient_values.reshape(gradient_values.shape[0] * gradient_values.shape[1], gradient_values.shape[2] * gradient_values.shape[3])
+    dout = np.array(np.vsplit(dout, m))
+    dout = np.concatenate(dout, axis=-1)
+    # Perform matrix multiplication between reshaped dout and w_col to get dX_col.
+    w_col_shape = w_col.shape
+    dout_shape = dout.shape
+    dX_col = w_col.T @ dout
+    # Perform matrix multiplication between reshaped dout and X_col to get dW_col.
+    dw_col = dout @ X_col.T
+    # Reshape back to image (col2im).
+    # dX = col2im(dX_col, inputs, kernel_h, kernel_w, stride, padding)
+    # Reshape dw_col into dw.
+    dW = dw_col.reshape((dw_col.shape[0], in_channels, kernel_h, kernel_w))
+
+    return dW
+
+
 def init_random_kernel(input_channels=3, output_channels=16, kernel_h=5, kernel_w=5, random=True):
 
     if random:

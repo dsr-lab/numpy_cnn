@@ -4,7 +4,76 @@ from PIL import Image
 from utils import *
 
 
-def maxPool(input_images, stride=2, filter_h=2, filter_w=2, padding=0):
+def fast_max_pool(inputs, stride=2, kernel_h=2, kernel_w=2, padding=0):
+    # Get required variables from the input shape
+    n_images, n_channels, input_h, input_w = inputs.shape
+
+    # Transform to matrix and reshape
+    input_matrix = im2col_(inputs, kernel_h, kernel_w, stride, padding)
+    # Reshape in a way that allow us to have:
+    # - the expected number of channels, that must be the same of the inputs
+    # - the number of rows of the matrix true divided for the number of channels
+    # - fill the matrix
+    input_matrix = input_matrix.reshape(n_channels, input_matrix.shape[0] // n_channels, -1)
+
+    # Compute the output size
+    out_h = int((input_h + 2 * padding - kernel_h) / stride) + 1
+    out_w = int((input_w + 2 * padding - kernel_w) / stride) + 1
+
+    """
+    Example: input is 1 image, 3 channels and 4x4
+    
+    [  # number of images
+        [  # number of channels
+            [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],  # heigth and width of the input
+            [[21, 22, 23, 24], [25, 26, 27, 28], [29, 30, 31, 32], [33, 34, 35, 36]],
+            [[41, 42, 43, 44], [45, 46, 47, 48], [49, 50, 51, 52], [53, 54, 55, 56]],
+        ]
+    ]
+    
+    input_matrix will produce the following output
+    
+    1   3   9   11     
+    2   4   10  12
+    5   7   13  15
+    6   8   14  16
+    
+    21  23  29  31          
+    22  24  30  32
+    25  27  33  35
+    26  28  34  36
+    
+    41  43  49  51          
+    42  44  50  52
+    45  47  53  55
+    46  48  54  56
+    
+    The resulting matrix is (12, 4)
+    
+    We have to reshape this matrix based on the 
+        (
+            number of channels, 
+            number of input matrix rows // number of channles,
+            -1
+        )
+    
+    So, in this example the shape will be (3, 4, 4)
+    
+    
+    
+    """
+
+    # Perform the maxpool column wise
+    max_pool_result = np.max(input_matrix, axis=1)
+    # Add one dimension for managing the number of the images
+    max_pool_result = np.array(np.hsplit(max_pool_result, n_images))
+    # Reshape to the expected shape after the max pooling operation
+    max_pool_result = max_pool_result.reshape(n_images, n_channels, out_h, out_w)
+
+    return max_pool_result
+
+
+def max_pool(input_images, stride=2, filter_h=2, filter_w=2, padding=0):
     # Retrieve the input size
     input_h = input_images.shape[2]
     input_w = input_images.shape[3]
@@ -32,27 +101,6 @@ def maxPool(input_images, stride=2, filter_h=2, filter_w=2, padding=0):
         maxpool_result[i, :, :, :] = single_maxpool_result
         pos_result.append(single_pos_vector)
     return maxpool_result, pos_result
-
-
-def maxpool_backprop(gradient_values, pos_result, conv_shape):
-    delta_conv = np.zeros(conv_shape)
-    delta_conv_shape = delta_conv.shape
-    for image in range(len(pos_result)):
-        indices = pos_result[image]
-        for p in indices:
-            '''
-                0) original image channel
-                1) original image row
-                2) original image column
-                3) maxpooled row
-                4) maxpooled column
-            '''
-            a = p[0]
-            b = p[1]
-            c = gradient_values[image, p[0], p[3], p[4]]
-
-            delta_conv[image, p[0], p[1], p[2]] = gradient_values[image, p[0], p[3], p[4]]
-    return delta_conv
 
 
 def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w):
@@ -99,8 +147,48 @@ def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w
 
                         # Perform the max pooling
                         maxpool_result[channel, output_h_idx, output_w_idx] = \
-                            np.max(image_portion)
+                            np.average(image_portion)
                         output_w_idx += 1
                 output_h_idx += 1
 
     return maxpool_result, pos_vector
+
+
+def maxpool_backprop(gradient_values, pos_result, conv_shape):
+    delta_conv = np.zeros(conv_shape)
+    delta_conv_shape = delta_conv.shape
+    for image in range(len(pos_result)):
+        indices = pos_result[image]
+        for p in indices:
+            '''
+                0) original image channel
+                1) original image row
+                2) original image column
+                3) maxpooled row
+                4) maxpooled column
+            '''
+            a = p[0]
+            b = p[1]
+            c = gradient_values[image, p[0], p[3], p[4]]
+
+            delta_conv[image, p[0], p[1], p[2]] = gradient_values[image, p[0], p[3], p[4]]
+    return delta_conv
+
+
+def fast_maxpool_backprop(gradient_values, conv_data, padding, stride, size):
+
+    m, n_C_prev, n_H_prev, n_W_prev = conv_data.shape
+
+    n_C = n_C_prev
+    n_H = int((n_H_prev + 2 * padding - size) / stride) + 1
+    n_W = int((n_W_prev + 2 * padding - size) / stride) + 1
+
+    dout_flatten = gradient_values.reshape(n_C, -1) / (size * size)
+    dX_col = np.repeat(dout_flatten, size * size, axis=0)
+    dX = col2im(dX_col, conv_data.shape, size, size, stride, padding)
+    # Reshape dX properly.
+    dX = dX.reshape(m, -1)
+    dX = np.array(np.hsplit(dX, n_C_prev))
+    dX = dX.reshape(m, n_C_prev, n_H_prev, n_W_prev)
+
+    return dX

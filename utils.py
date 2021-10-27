@@ -128,3 +128,25 @@ def im2col_(images, filter_h, filter_w, stride, pad):
     image_matrices = np.concatenate(image_matrices, axis=-1)
 
     return image_matrices
+
+
+def col2im(dX_col, X_shape, HF, WF, stride, pad):
+
+    # Get input size
+    N, D, H, W = X_shape
+    # Add padding if needed.
+    H_padded, W_padded = H + 2 * pad, W + 2 * pad
+    X_padded = np.zeros((N, D, H_padded, W_padded))
+
+    # Index matrices, necessary to transform our input image into a matrix.
+    i, j, d = get_indices(X_shape, HF, WF, stride, pad)
+    # Retrieve batch dimension by spliting dX_col N times: (X, Y) => (N, X, Y)
+    dX_col_reshaped = np.array(np.hsplit(dX_col, N))
+    # Reshape our matrix back to image.
+    # slice(None) is used to produce the [::] effect which means "for every elements".
+    np.add.at(X_padded, (slice(None), d, i, j), dX_col_reshaped)
+    # Remove padding from new image if needed.
+    if pad == 0:
+        return X_padded
+    elif type(pad) is int:
+        return X_padded[pad:-pad, pad:-pad, :, :]

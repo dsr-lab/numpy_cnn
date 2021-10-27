@@ -1,20 +1,10 @@
-import random
-import numpy as np
-from caffe2.python.helpers.pooling import max_pool
-
 from cifar10 import Cifar10
-from convolution import *
-from convolution_to_delete import *
-from maxpool_to_delete import *
 from flatten import flatten
-from max_pooling import *
 from relu import ReLU, dReLU
 from sanity_checks import *
 from softmax import *
 from utils import *
 from cross_entropy import *
-import torch.nn.functional as F
-import torch
 
 BATCH_SIZE = 128
 EPOCHS = 80
@@ -22,22 +12,8 @@ EPOCHS = 80
 
 def train_network(train_images, train_labels,
                   test_images, test_labels,
-                  valid_images, valid_labels):
-    # test_max_pool()
-    # test_convolution()
-    # test_softmax()
-
-    # ##############################
-    # CUSTOM TEST
-    # ##############################
-    # train_images = [
-    #     [[[1, 2, -3, 2], [4, 5, 6, 2], [-7, 8, 9, 2], [1, 2, 3, 4]]]
-    # ]
-    # train_images = np.asarray(train_images, dtype=np.float64)
-    #
-    # train_labels = [2]
-    # train_labels = np.asarray(train_labels, dtype=np.float64)
-
+                  valid_images, valid_labels,
+                  use_fast_conv):
     # TODO: optimize this without creating a copy of the dataset
     train_images_batches = np.split(train_images, np.arange(BATCH_SIZE, len(train_images), BATCH_SIZE))
     train_images_labels = np.split(train_labels, np.arange(BATCH_SIZE, len(train_labels), BATCH_SIZE))
@@ -102,10 +78,14 @@ def train_network(train_images, train_labels,
             # ####################
             # Forward Pass
             # ####################
-            x_conv = convolve_2d(input_data, kernel)
+            if use_fast_conv:
+                x_conv = fast_convolve_2d(input_data, kernel)
+            else:
+                x_conv = convolve_2d(input_data, kernel)
+
             conv_out_shape = x_conv.shape
             x = ReLU(x_conv)
-            x_maxpool, pos_maxpool_pos = maxPool(x)
+            x_maxpool, pos_maxpool_pos = max_pool(x)
             a = x_maxpool.shape
             x_flatten = flatten(x_maxpool)
 
@@ -159,8 +139,11 @@ def train_network(train_images, train_labels,
             delta_conv = maxpool_backprop(delta_maxpool, pos_maxpool_pos, conv_out_shape)
             delta_conv = np.multiply(delta_conv, dReLU(x_conv))
 
-            # conv1_delta = convolution_backprop(input_data, kernel, delta_conv)
-            conv1_delta = convolution_backprop(input_data, kernel, delta_conv)
+            if use_fast_conv:
+                conv1_delta = fast_convolution_backprop(input_data, kernel, delta_conv)
+            else:
+                conv1_delta = convolution_backprop(input_data, kernel, delta_conv)
+
 
             # conv2_delta = test_conv_back(input_data, kernel, delta_conv)
 
@@ -212,10 +195,13 @@ def train_network(train_images, train_labels,
             # ####################
             # Forward Pass
             # ####################
-            x_conv = convolve_2d(input_data, kernel)
+            if use_fast_conv:
+                x_conv = fast_convolve_2d(input_data, kernel)
+            else:
+                x_conv = convolve_2d(input_data, kernel)
             conv_out_shape = x_conv.shape
             x = ReLU(x_conv)
-            x_maxpool, pos_maxpool_pos = maxPool(x)
+            x_maxpool, pos_maxpool_pos = max_pool(x)
             a = x_maxpool.shape
             x_flatten = flatten(x_maxpool)
 
@@ -255,9 +241,12 @@ def main():
     validation_images, validation_labels, \
     test_images, test_labels = dataset.get_small_datasets()
 
-    # train_network(train_images, train_labels, validation_images, validation_labels, test_images, test_labels)
+    train_network(train_images, train_labels, validation_images, validation_labels, test_images, test_labels, True)
 
-    test_naive_fast_convolutions()
+    #convolution_method_comparisons()
+    # test_naive_fast_max_pool()
+    #max_pool_backprop_test()
+
 
 
 if __name__ == '__main__':

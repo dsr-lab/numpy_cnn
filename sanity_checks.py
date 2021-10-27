@@ -47,8 +47,76 @@ def test_naive_fast_convolutions():
     # Call the naive convolution version
     conv2 = convolve_2d(img, kernel)
 
+    conv1_shape = conv1.shape
+
     if (conv1 == conv2).all():
         print("The 2 convolution operations gave the same result")
+
+
+def convolution_method_comparisons():
+
+    # 2 images, 3 channels and 4x4 size image
+    # NOTE: Kernel MUST have 3 input channels
+    X = [
+        [
+            [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
+            [[3, 1, 7, 2], [9, 1, 0, 3], [5, 2, 4, 8], [4, 3, 1, 1]],
+            [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]
+        ],
+        [
+            [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
+            [[3, 1, 7, 2], [9, 1, 0, 3], [5, 2, 4, 8], [4, 3, 1, 1]],
+            [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]
+        ]
+    ]
+
+    # 1 image, 1 channel and 4x4 size image
+    # NOTE: Kernel MUST have 1 input channel
+    # X = [
+    #     [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]]
+    # ]
+
+    X = np.asarray(X, dtype=np.float64)
+    kernel = init_random_kernel(kernel_h=2, kernel_w=2, input_channels=3, output_channels=2, random=False)
+    kernel2 = init_random_kernel(kernel_h=2, kernel_w=2, input_channels=1, output_channels=2, random=False)
+
+    convolution_result = convolve_2d(X, kernel)
+    convolution_result2 = convolve_2d(X, kernel2)
+
+    # Valid gradient size for: 2 images, 2 channels output in the kernel
+    gradient_values = [
+        [
+            [[3, 1, 4], [5, 1, 7], [5, 1, 7]],
+            [[1, 2, 3], [1, 0, 2], [9, 1, 1]]
+        ],
+        [
+            [[3, 1, 4], [5, 1, 7], [5, 1, 7]],
+            [[1, 2, 3], [1, 0, 2], [9, 1, 1]]
+        ]
+    ]
+    # Valid gradient size for: 1 image, 1 channel output in the kernel
+    # gradient_values = [
+    #     [
+    #         [[3, 1, 4], [5, 1, 7], [5, 1, 7]],
+    #         [[1, 2, 3], [1, 0, 2], [9, 1, 1]]
+    #     ]
+    # ]
+    gradient_values = np.asarray(gradient_values, dtype=np.float64)
+
+    a = fast_convolution_backprop(X, kernel, gradient_values)
+    b = convolution_backprop(X, kernel, gradient_values)
+
+    if (convolution_result == convolution_result2).all():
+        print("CONV EQUAL")
+    else:
+        print("CONV NOT EQUAL")
+
+    if (a == b).all():
+        print("BACKPROB EQUAL")
+    else:
+        print("BACKPROP NOT EQUAL")
+
+    print()
 
 
 # ################################################################################
@@ -65,7 +133,7 @@ def max_pool_backprop_test():
     conv_data = np.asarray(conv_data, dtype=np.float64)
     conv_data_shape = conv_data.shape
 
-    maxpool_result, maxpool_pos_indices = maxPool(conv_data)
+    maxpool_result, maxpool_pos_indices = max_pool(conv_data)
     maxpool_result_shape = maxpool_result.shape
 
     bp = [
@@ -82,6 +150,10 @@ def max_pool_backprop_test():
     #    the positions of max values
     # 3) the shape expected from the convolutional layer
     maxpool_gradients = maxpool_backprop(bp, maxpool_pos_indices, conv_data.shape)
+    maxpool_gradients2 = fast_maxpool_backprop(bp, conv_data, padding=0, size=2, stride=2)
+
+    print()
+
     print()
 
 
@@ -104,7 +176,7 @@ def test_max_pool():
 
     pad = 0
 
-    new_img, pos_result = maxPool(data, filter_h=2, filter_w=2, stride=2, padding=pad)
+    new_img, pos_result = max_pool(data, filter_h=2, filter_w=2, stride=2, padding=pad)
     # new_img = np.squeeze(new_img, axis=0)
     new_img_shape = new_img.shape
     # new_img = np.squeeze(new_img, axis=0)
@@ -112,4 +184,39 @@ def test_max_pool():
     pos_result = np.asarray(pos_result, dtype=np.int32)
 
     # delta_conv = np.multiply(delta_conv, dReLU(X_conv))
+    print()
+
+
+def test_naive_fast_max_pool():
+
+    data = [
+        [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
+         [[3, 1, 7, 2], [9, 1, 0, 3], [5, 2, 4, 8], [4, 3, 1, 1]],
+         [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]],
+
+        # [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
+        #  [[3, 1, 7, 2], [9, 1, 0, 3], [5, 2, 4, 8], [4, 3, 1, 1]],
+        #  [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]]
+    ]
+    data = [  # number of images
+        [  # number of channels
+            [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],  # heigth and width of the input
+            [[21, 22, 23, 24], [25, 26, 27, 28], [29, 30, 31, 32], [33, 34, 35, 36]],
+            [[41, 42, 43, 44], [45, 46, 47, 48], [49, 50, 51, 52], [53, 54, 55, 56]],
+        ]
+    ]
+
+    data = np.asarray(data, dtype=np.float64)
+
+    # (2, 3, 4, 4) e.g.: 2 images, with 3 channels, 4 rows (height) and 4 columns (width)
+    data_shape = data.shape
+
+    pad = 0
+
+    new_img = fast_max_pool(data, kernel_h=2, kernel_w=2, stride=2, padding=pad)
+    new_img2, pos_idx = max_pool(data, filter_h=2, filter_w=2, stride=2, padding=pad)
+
+    if (new_img == new_img2).all():
+        print("The 2 max pooling operations gave the same result")
+
     print()
