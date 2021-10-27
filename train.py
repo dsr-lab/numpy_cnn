@@ -9,6 +9,7 @@ from maxpool_to_delete import *
 from flatten import flatten
 from max_pooling import *
 from relu import ReLU, dReLU
+from sanity_checks import *
 from softmax import *
 from utils import *
 from cross_entropy import *
@@ -247,27 +248,6 @@ def train_network(train_images, train_labels,
         print('***********************************')
 
 
-def im2col():
-    kernel_size = 2
-    img = [
-        [
-            [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
-            [[17, 18, 19, 20], [21, 22, 23, 24], [25, 26, 27, 28], [29, 30, 31, 32]],
-            [[33, 34, 35, 36], [37, 38, 39, 40], [41, 42, 43, 44], [45, 46, 47, 48]]
-        ],
-        [
-            [[111, 211, 311, 411], [511, 611, 711, 811], [911, 1011, 1111, 121], [131, 141, 151, 161]],
-            [[171, 181, 191, 201], [211, 221, 231, 241], [251, 261, 271, 281], [291, 301, 311, 321]],
-            [[331, 341, 351, 361], [371, 381, 391, 401], [411, 421, 431, 441], [451, 461, 471, 481]]
-        ]
-    ]
-
-    img = np.asarray(img)
-
-    img2 = im2col_(img, 2, 2, 1, 0)
-    print(img2)
-
-
 def main():
     dataset = Cifar10()
 
@@ -275,17 +255,9 @@ def main():
     validation_images, validation_labels, \
     test_images, test_labels = dataset.get_small_datasets()
 
-    im2col()
-
     # train_network(train_images, train_labels, validation_images, validation_labels, test_images, test_labels)
-    # max_pool_backprop_test()
 
-    # test_max_pool()
-    # show_test_image()
-    # max_pool_backprop_test()
-    # backprop_test()
-
-    # convolution_method_comparisons()
+    test_naive_fast_convolutions()
 
 
 if __name__ == '__main__':

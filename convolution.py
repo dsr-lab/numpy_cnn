@@ -3,6 +3,9 @@ import numpy as np
 
 # Actually is a cross-correlation (no kernel flip)
 # numberOfFilters, out_channels, kernel_size, stride
+from utils import *
+
+
 def convolve_2d(images, kernel, padding=0, stride=1):
 
     output_channels = kernel.shape[0]
@@ -67,6 +70,35 @@ def convolve_2d(images, kernel, padding=0, stride=1):
                     output_h_idx += 1
 
     return convolution_result
+
+
+def fast_convolve_2d(inputs, kernel, padding=0, stride=1):
+
+    # Get required variables from the input shape
+    n_images, n_channels, input_h, input_w = inputs.shape
+
+    # Get required variables from the kernel shape
+    out_channels, in_channels, kernel_h, kernel_w = kernel.shape
+
+    # Compute the output size
+    out_h = int((input_h + 2 * padding - kernel_h) / stride) + 1
+    out_w = int((input_w + 2 * padding - kernel_w) / stride) + 1
+
+    # Transform to matrix and reshape
+    input_matrix = im2col_(inputs, kernel_h, kernel_w, stride, padding)
+
+    # Reshape the kernel based on the number of channels
+    # (e.g.: one channel = one row in the resulting matrix)
+    kernel_matrix = kernel.reshape((out_channels, -1))
+
+    # perform the matrix multiplication that emulates the convolution
+    conv_matrix = kernel_matrix @ input_matrix
+
+    # reshape to the expected shape after the convolution (2,2,3,3)
+    conv_result = np.array(np.hsplit(conv_matrix, n_images))
+    conv_result = conv_result.reshape((n_images, out_channels, out_h, out_w))
+
+    return conv_result
 
 
 # gradient_values coming from the backproagation in progress
