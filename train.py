@@ -85,7 +85,11 @@ def train_network(train_images, train_labels,
 
             conv_out_shape = x_conv.shape
             x = ReLU(x_conv)
-            x_maxpool, pos_maxpool_pos = max_pool(x)
+            if use_fast_conv:
+                x_maxpool, pos_maxpool_pos = fast_max_pool(x)
+            else:
+                x_maxpool, pos_maxpool_pos = max_pool(x)
+
             a = x_maxpool.shape
             x_flatten = flatten(x_maxpool)
 
@@ -136,14 +140,18 @@ def train_network(train_images, train_labels,
             delta_maxpool = delta_0.reshape(x_maxpool.shape)
 
             # gradients through the maxpool operation
-            delta_conv = maxpool_backprop(delta_maxpool, pos_maxpool_pos, conv_out_shape)
+            if use_fast_conv:
+                delta_conv = fast_maxpool_backprop(delta_maxpool, conv_out_shape, padding=0, stride=2, max_pool_size=2,
+                                                   pos_result=pos_maxpool_pos)
+            else:
+                delta_conv = fast_maxpool_backprop(delta_maxpool, pos_maxpool_pos, conv_out_shape)
+
             delta_conv = np.multiply(delta_conv, dReLU(x_conv))
 
             if use_fast_conv:
                 conv1_delta = fast_convolution_backprop(input_data, kernel, delta_conv)
             else:
                 conv1_delta = convolution_backprop(input_data, kernel, delta_conv)
-
 
             # conv2_delta = test_conv_back(input_data, kernel, delta_conv)
 
@@ -201,7 +209,12 @@ def train_network(train_images, train_labels,
                 x_conv = convolve_2d(input_data, kernel)
             conv_out_shape = x_conv.shape
             x = ReLU(x_conv)
-            x_maxpool, pos_maxpool_pos = max_pool(x)
+
+            if use_fast_conv:
+                x_maxpool, pos_maxpool_pos = fast_max_pool(x)
+            else:
+                x_maxpool, pos_maxpool_pos = max_pool(x)
+
             a = x_maxpool.shape
             x_flatten = flatten(x_maxpool)
 
@@ -237,17 +250,44 @@ def train_network(train_images, train_labels,
 def main():
     dataset = Cifar10()
 
-    train_images, train_labels, \
-    validation_images, validation_labels, \
-    test_images, test_labels = dataset.get_small_datasets()
+    # train_images, train_labels, \
+    # validation_images, validation_labels, \
+    # test_images, test_labels = dataset.get_small_datasets()
+    #
+    # train_network(train_images, train_labels, validation_images, validation_labels, test_images, test_labels, True)
+    train_network(dataset.train_images, dataset.train_labels,
+                  dataset.validation_images, dataset.validation_labels,
+                  dataset.test_images, dataset.test_labels, True)
 
-    #train_network(train_images, train_labels, validation_images, validation_labels, test_images, test_labels, True)
-
-    #convolution_method_comparisons()
+    # convolution_method_comparisons()
     # test_naive_fast_max_pool()
+    # max_pool_backprop_test()
+
+    # test_naive_fast_max_pool()
+
     #max_pool_backprop_test()
 
-    test_naive_fast_max_pool()
+    # The gradient is coming from the layer AFTER the maxpool
+    # so if the input image was (1, 2, 4, 4) - the output of the conv layer -
+    # then, the gradients should be (1, 2, 2, 2)
+
+    # ########################################
+    # WORKING WITH 1 CHANNEL
+    # ########################################
+    # delta_conv = np.zeros((12, 4))
+    # delta_conv_shape = delta_conv.shape
+    #
+    # x = np.zeros((4, 4), dtype=np.int32)
+    #
+    # col_indices = np.arange(delta_conv.shape[1])
+    #
+    # rows_indices = np.asarray([[2, 3, 0, 1]])
+    #
+    # np.add.at(x, (rows_indices, col_indices), [1, 2, 3, 4])
+
+
+
+
 
 
 if __name__ == '__main__':

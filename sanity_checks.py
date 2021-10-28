@@ -124,21 +124,36 @@ def convolution_method_comparisons():
 
 
 def max_pool_backprop_test():
+    # The output of the conv layer
     conv_data = [
         [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
-         [[3, 1, 7, 2], [9, 1, 0, 3], [5, 2, 4, 8], [4, 3, 1, 1]],
-         [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]]]
+         [[12, 18, 0, 2], [33, 2, 55, 60], [5, 2, 4, 8], [4, 32, 101, 1]],
+         [[19, 1, 27, 2], [51, 1, 0, 9], [82, 2, 4, 9], [4, 3, 1, 11]]],
+        #[[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
+        #[[12, 18, 0, 2], [33, 2, 55, 60], [5, 2, 4, 8], [4, 32, 101, 1]],
+         #[[19, 1, 27, 2], [51, 1, 0, 9], [82, 2, 4, 9], [4, 3, 1, 11]]]
+    ]
 
     conv_data = np.asarray(conv_data, dtype=np.float64)
     conv_data_shape = conv_data.shape
 
-    maxpool_result, maxpool_pos_indices = max_pool(conv_data)
-    maxpool_result_shape = maxpool_result.shape
+    # maxpool_result, maxpool_pos_indices = max_pool(conv_data)
+    # maxpool_result2, maxpool_pos_indices2 = fast_maxpool_backprop(conv_data,)
+
+    pad = 0
+    new_img, pos_idx = max_pool(conv_data, filter_h=2, filter_w=2, stride=2, padding=pad)
+    new_img2, pos_idx2 = fast_max_pool(conv_data, kernel_h=2, kernel_w=2, stride=2, padding=pad)
+
+    if (new_img == new_img2).all():
+        print("The 2 max pooling operations gave the same result")
 
     bp = [
         [[[1, 2], [3, 4]],
          [[5, 6], [7, 8]],
-         [[9, 10], [11, 12]]]
+         [[9, 10], [11, 12]]],
+        #[[[1, 2], [3, 4]],
+         #[[5, 6], [7, 8]],
+         #[[9, 10], [11, 12]]]
     ]
     bp = np.asarray(bp, dtype=np.float64)
     bp_shape = bp.shape
@@ -148,8 +163,11 @@ def max_pool_backprop_test():
     # 2) the positional indices saved during forward pass with
     #    the positions of max values
     # 3) the shape expected from the convolutional layer
-    maxpool_gradients = maxpool_backprop(bp, maxpool_pos_indices, conv_data.shape)
-    maxpool_gradients2 = fast_maxpool_backprop(bp, conv_data, padding=0, size=2, stride=2)
+    maxpool_gradients = maxpool_backprop(bp, pos_idx, conv_data.shape)
+    maxpool_gradients2 = fast_maxpool_backprop(bp, conv_data.shape, padding=0, stride=2, max_pool_size=2, pos_result=pos_idx2)
+
+    if(maxpool_gradients == maxpool_gradients2).all():
+        print("backprop same result!!!!!")
 
     print()
 

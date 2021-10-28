@@ -3,7 +3,7 @@ import numpy as np
 from convolution import *
 
 
-def col2im(gradient_values, input_shape, filter_h, filter_w, stride, pad):
+def col2im____(gradient_values, input_shape, filter_h, filter_w, stride, pad):
 
     # Input size
     n_images, channels, image_h, image_w = input_shape

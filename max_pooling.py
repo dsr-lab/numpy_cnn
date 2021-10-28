@@ -15,6 +15,7 @@ def fast_max_pool(inputs, stride=2, kernel_h=2, kernel_w=2, padding=0):
     # - the number of rows of the matrix true divided for the number of channels
     # - fill the matrix
     input_matrix = input_matrix.reshape(n_channels, input_matrix.shape[0] // n_channels, -1)
+    input_matrix_shape = input_matrix.shape
 
     # Compute the output size
     out_h = int((input_h + 2 * padding - kernel_h) / stride) + 1
@@ -176,20 +177,53 @@ def maxpool_backprop(gradient_values, pos_result, conv_shape):
     return delta_conv
 
 
-def fast_maxpool_backprop(gradient_values, conv_data, padding, stride, size, pos_indices):
+def fast_maxpool_backprop(gradient_values, conv_shape, padding, stride, max_pool_size, pos_result):
+    # ########################################
+    # MULTIPLE CHANNELS
+    # ########################################
+    n_channels = conv_shape[1]
+    # values coming from gradients during the backpropagation
+    # bp = [
+    #     [[[1, 2], [3, 4]],
+    #      [[5, 6], [7, 8]],
+    #      [[9, 10], [11, 12]]],
+    #     [[[13, 14], [15, 16]],
+    #      [[17, 18], [19, 20]],
+    #      [[21, 22], [23, 24]]]
+    # ]
+    # bp = np.asarray(bp, dtype=np.float64)
+    bp_flattened = gradient_values.reshape(n_channels, -1)
 
-    m, n_C_prev, n_H_prev, n_W_prev = conv_data.shape
+    # the convolution shape expected is then (1,3,4,4)
+    # delta_conv = np.zeros((2, 3, 4, 4))  # shape of the gradient
+    delta_conv = np.zeros(conv_shape)
+    delta_conv_shape = delta_conv.shape
+    delta_conv_col = im2col_(delta_conv, max_pool_size, max_pool_size, stride, padding)
 
-    n_C = n_C_prev
-    n_H = int((n_H_prev + 2 * padding - size) / stride) + 1
-    n_W = int((n_W_prev + 2 * padding - size) / stride) + 1
+    # Those are indexes channel wise    n_channels = 3
+    # pos_result = [[2, 3, 0, 1, 2, 3, 0, 1], [2, 0, 2, 2, 2, 0, 2, 2], [2, 0, 0, 1, 2, 0, 0, 3]]
+    # pos_result = np.asarray(pos_result)
+    # pos_result_shape = pos_result.shape
 
-    dout_flatten = gradient_values.reshape(n_C, -1) / (size * size)
-    dX_col = np.repeat(dout_flatten, size * size, axis=0)
-    dX = col2im(dX_col, conv_data.shape, size, size, stride, padding)
-    # Reshape dX properly.
-    dX = dX.reshape(m, -1)
-    dX = np.array(np.hsplit(dX, n_C_prev))
-    dX = dX.reshape(m, n_C_prev, n_H_prev, n_W_prev)
+    row_coefficient = delta_conv_col.shape[0] // n_channels
+    channels = np.arange(0, delta_conv_col.shape[0], row_coefficient)
+    channels = np.repeat(channels, pos_result.shape[1])
+    channels = channels.reshape(pos_result.shape)
+    pos_result += channels
 
-    return dX
+    col_indices = np.arange(delta_conv_col.shape[1])
+    col_indices = np.tile(col_indices, n_channels)
+    col_indices = col_indices.reshape(1, n_channels, -1)
+
+    np.add.at(delta_conv_col, (pos_result, col_indices), bp_flattened)
+
+    #delta_conv = delta_conv_col.reshape(2, 3, 4, 4)
+    #delta_conv = delta_conv_col.reshape(conv_shape)
+
+    delta_conv = col2im(delta_conv_col, conv_shape, max_pool_size, max_pool_size, stride, padding)
+    # n_images = conv_shape[0]
+    # delta_conv = delta_conv_col.reshape(n_images, -1)
+    # delta_conv = np.array(np.hsplit(delta_conv, n_channels))
+    # delta_conv = delta_conv.reshape(conv_shape)
+
+    return delta_conv
