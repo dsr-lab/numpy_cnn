@@ -65,12 +65,13 @@ def fast_max_pool(inputs, stride=2, kernel_h=2, kernel_w=2, padding=0):
 
     # Perform the maxpool column wise
     max_pool_result = np.max(input_matrix, axis=1)
+    pos_result = np.argmax(input_matrix, axis=1)
     # Add one dimension for managing the number of the images
     max_pool_result = np.array(np.hsplit(max_pool_result, n_images))
     # Reshape to the expected shape after the max pooling operation
     max_pool_result = max_pool_result.reshape(n_images, n_channels, out_h, out_w)
 
-    return max_pool_result
+    return max_pool_result, pos_result
 
 
 def max_pool(input_images, stride=2, filter_h=2, filter_w=2, padding=0):
@@ -147,7 +148,7 @@ def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w
 
                         # Perform the max pooling
                         maxpool_result[channel, output_h_idx, output_w_idx] = \
-                            np.average(image_portion)
+                            np.max(image_portion)
                         output_w_idx += 1
                 output_h_idx += 1
 
@@ -175,7 +176,7 @@ def maxpool_backprop(gradient_values, pos_result, conv_shape):
     return delta_conv
 
 
-def fast_maxpool_backprop(gradient_values, conv_data, padding, stride, size):
+def fast_maxpool_backprop(gradient_values, conv_data, padding, stride, size, pos_indices):
 
     m, n_C_prev, n_H_prev, n_W_prev = conv_data.shape
 

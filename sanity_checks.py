@@ -54,7 +54,6 @@ def test_naive_fast_convolutions():
 
 
 def convolution_method_comparisons():
-
     # 2 images, 3 channels and 4x4 size image
     # NOTE: Kernel MUST have 3 input channels
     X = [
@@ -158,7 +157,6 @@ def max_pool_backprop_test():
 
 
 def test_max_pool():
-
     data = [
         [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
          [[3, 1, 7, 2], [9, 1, 0, 3], [5, 2, 4, 8], [4, 3, 1, 1]],
@@ -188,7 +186,6 @@ def test_max_pool():
 
 
 def test_naive_fast_max_pool():
-
     data = [
         [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
          [[3, 1, 7, 2], [9, 1, 0, 3], [5, 2, 4, 8], [4, 3, 1, 1]],
@@ -205,15 +202,18 @@ def test_naive_fast_max_pool():
             [[41, 42, 43, 44], [45, 46, 47, 48], [49, 50, 51, 52], [53, 54, 55, 56]],
         ]
     ]
-
     data = np.asarray(data, dtype=np.float64)
+    a = data.shape
+    data = np.random.randint(0, high=255, size=(1, 3, 4, 4))
+    b = data.shape
+
 
     # (2, 3, 4, 4) e.g.: 2 images, with 3 channels, 4 rows (height) and 4 columns (width)
     data_shape = data.shape
 
     pad = 0
 
-    new_img = fast_max_pool(data, kernel_h=2, kernel_w=2, stride=2, padding=pad)
+    new_img, pos_idx = fast_max_pool(data, kernel_h=2, kernel_w=2, stride=2, padding=pad)
     new_img2, pos_idx = max_pool(data, filter_h=2, filter_w=2, stride=2, padding=pad)
 
     if (new_img == new_img2).all():

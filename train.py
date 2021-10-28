@@ -241,12 +241,13 @@ def main():
     validation_images, validation_labels, \
     test_images, test_labels = dataset.get_small_datasets()
 
-    train_network(train_images, train_labels, validation_images, validation_labels, test_images, test_labels, True)
+    #train_network(train_images, train_labels, validation_images, validation_labels, test_images, test_labels, True)
 
     #convolution_method_comparisons()
     # test_naive_fast_max_pool()
     #max_pool_backprop_test()
 
+    test_naive_fast_max_pool()
 
 
 if __name__ == '__main__':
