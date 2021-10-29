@@ -178,9 +178,7 @@ def maxpool_backprop(gradient_values, pos_result, conv_shape):
 
 
 def fast_maxpool_backprop(gradient_values, conv_shape, padding, stride, max_pool_size, pos_result):
-    # ########################################
-    # MULTIPLE CHANNELS
-    # ########################################
+
     n_channels = conv_shape[1]
     # values coming from gradients during the backpropagation
     # bp = [
@@ -217,8 +215,8 @@ def fast_maxpool_backprop(gradient_values, conv_shape, padding, stride, max_pool
 
     np.add.at(delta_conv_col, (pos_result, col_indices), bp_flattened)
 
-    #delta_conv = delta_conv_col.reshape(2, 3, 4, 4)
-    #delta_conv = delta_conv_col.reshape(conv_shape)
+    # delta_conv = delta_conv_col.reshape(2, 3, 4, 4)
+    # delta_conv = delta_conv_col.reshape(conv_shape)
 
     delta_conv = col2im(delta_conv_col, conv_shape, max_pool_size, max_pool_size, stride, padding)
     # n_images = conv_shape[0]

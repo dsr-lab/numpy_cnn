@@ -1,12 +1,12 @@
 import numpy as np
 from convolution import *
 from max_pooling import *
+from softmax import softmax
 
 
 # ################################################################################
 # CONVOLUTION
 # ################################################################################
-
 
 def test_naive_fast_convolutions():
     # Define the input of the convolution
@@ -42,10 +42,10 @@ def test_naive_fast_convolutions():
     kernel = np.asarray(kernel)
 
     # Call the faster convolution version
-    conv1 = fast_convolve_2d(img, kernel)
+    conv1 = fast_convolve_2d(img, kernel, padding=1)
 
     # Call the naive convolution version
-    conv2 = convolve_2d(img, kernel)
+    conv2 = convolve_2d(img, kernel, padding=1)
 
     conv1_shape = conv1.shape
 
@@ -76,8 +76,8 @@ def convolution_method_comparisons():
     # ]
 
     X = np.asarray(X, dtype=np.float64)
-    kernel = init_random_kernel(kernel_h=2, kernel_w=2, input_channels=3, output_channels=2, random=False)
-    kernel2 = init_random_kernel(kernel_h=2, kernel_w=2, input_channels=1, output_channels=2, random=False)
+    kernel = generate_kernel(kernel_h=2, kernel_w=2, input_channels=3, output_channels=2, random=False)
+    kernel2 = generate_kernel(kernel_h=2, kernel_w=2, input_channels=1, output_channels=2, random=False)
 
     convolution_result = convolve_2d(X, kernel)
     convolution_result2 = convolve_2d(X, kernel2)
@@ -238,3 +238,18 @@ def test_naive_fast_max_pool():
         print("The 2 max pooling operations gave the same result")
 
     print()
+
+
+# ################################################################################
+# SOFTMAX
+# ################################################################################
+def test_softmax():
+    scores = [[3, -2, -100], [3, -2, -100]]
+    scores = [[1, 2, 3, 6],
+              [2, 4, 5, 6],
+              [3, 8, 7, 6]]
+    scores = [[-1, 0, 3, 5]]
+
+    result = softmax(scores)
+    print(result)
+    print('softmax computed')

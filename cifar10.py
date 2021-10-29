@@ -4,8 +4,6 @@ import tarfile
 import urllib.request
 import numpy as np
 
-from utils import show_image
-
 
 class Cifar10:
 
@@ -129,3 +127,9 @@ class Cifar10:
             self.train_images[:500], self.train_labels[:500],  \
             self.validation_images[:100], self.validation_labels[:100], \
             self.test_images[:100], self.test_labels[:100]
+
+    def get_datasets(self):
+        return \
+            self.train_images, self.train_labels,  \
+            self.validation_images, self.validation_labels, \
+            self.test_images, self.test_labels

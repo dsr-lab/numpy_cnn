@@ -1,11 +1,7 @@
-import numpy as np
-
-
-# Actually is a cross-correlation (no kernel flip)
-# numberOfFilters, out_channels, kernel_size, stride
 from utils import *
 
 
+# Actually is a cross-correlation (no kernel flip)
 def convolve_2d(images, kernel, padding=0, stride=1):
 
     output_channels = kernel.shape[0]
@@ -187,7 +183,7 @@ def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride
     return dW
 
 
-def init_random_kernel(input_channels=3, output_channels=16, kernel_h=5, kernel_w=5, random=True):
+def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3, random=True):
 
     if random:
         # return np.random.rand(output_channels, input_channels, kernel_h, kernel_w) * np.sqrt(1./3.)
@@ -199,25 +195,3 @@ def init_random_kernel(input_channels=3, output_channels=16, kernel_h=5, kernel_
 
     else:
         return np.ones((output_channels, input_channels, kernel_h, kernel_w)) * 2
-
-
-def test_convolution():
-    data = [
-        [[3, 1, 7, 2, 5], [5, 1, 0, 9, 2], [8, 2, 4, 9, 3], [4, 3, 1, 1, 4]],
-        [[3, 1, 7, 2, 5], [9, 1, 0, 3, 2], [5, 2, 4, 8, 3], [4, 3, 1, 1, 4]],
-        [[3, 1, 7, 2, 5], [5, 1, 0, 9, 2], [8, 2, 4, 9, 3], [4, 3, 1, 1, 4]]
-    ]
-    data = np.asarray(data, dtype=np.float64)
-    data = np.expand_dims(data, axis=0)
-    pad = 1
-
-    edge_detection_kernel = np.array([
-        [[0, -1, 0], [-1, 5, -1], [0, -1, 0]]  # sobel
-    ], dtype=np.float64)
-
-    edge_detection_kernel = edge_detection_kernel.reshape((1, 1, 3, 3))
-
-    res = convolve_2d(data, edge_detection_kernel, padding=pad, stride=2)
-    res = np.squeeze(res, axis=0)
-    print(res)
-    print()

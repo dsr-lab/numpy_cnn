@@ -5,6 +5,9 @@ import numpy as np
 matplotlib.use("TkAgg")
 
 
+# ################################################################################
+# PLOTTING
+# ################################################################################
 def show_gray_scale_image(image, title=None):
     a = image.shape
     # initially (3, 32, 32), pyplot expects (32, 32, 3)
@@ -28,6 +31,9 @@ def show_image(image, title=None):
         plt.title(title)
 
 
+# ################################################################################
+# METRICS
+# ################################################################################
 def accuracy(scores, labels):
     n_samples = scores.shape[1]
 
@@ -40,8 +46,10 @@ def accuracy(scores, labels):
     return acc
 
 
+# ################################################################################
+# FAST CONVOLUTIONS AND MAX POOL UTILITY METHODS
+# ################################################################################
 def get_indices(input_shape, filter_h, filter_w, stride, pad):
-
     # Input size
     n_images, channels, image_h, image_w = input_shape
 
@@ -115,7 +123,6 @@ def get_indices(input_shape, filter_h, filter_w, stride, pad):
 
 
 def im2col_(images, filter_h, filter_w, stride, pad):
-
     # Apply the padding
     padded_images = np.pad(images, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
     row_indices, col_indices, channel_matrix = get_indices(images.shape, filter_h, filter_w, stride, pad)
@@ -131,7 +138,6 @@ def im2col_(images, filter_h, filter_w, stride, pad):
 
 
 def col2im(dX_col, X_shape, HF, WF, stride, pad):
-
     # Get input size
     N, D, H, W = X_shape
     # Add padding if needed.

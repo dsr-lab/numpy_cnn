@@ -1,19 +1,28 @@
 from cifar10 import Cifar10
+from dropout import *
 from flatten import flatten
 from relu import ReLU, dReLU
 from sanity_checks import *
 from softmax import *
 from utils import *
 from cross_entropy import *
+from timeit import default_timer as timer
 
 BATCH_SIZE = 128
-EPOCHS = 80
+EPOCHS = 100
+CONV_DROPOUT_PROBABILITY = 0.2
+DENSE_DROPOUT_PROBABILITY = 0.5
+
+OPTIMIZER = "ADAM"  # Valid values: ADAM, MOMENTUM
+CONV_PADDING = 1
+TRAIN_SMALL_DATASET = False
 
 
 def train_network(train_images, train_labels,
                   test_images, test_labels,
                   valid_images, valid_labels,
-                  use_fast_conv):
+                  use_fast_conv,
+                  use_dropout):
     # TODO: optimize this without creating a copy of the dataset
     train_images_batches = np.split(train_images, np.arange(BATCH_SIZE, len(train_images), BATCH_SIZE))
     train_images_labels = np.split(train_labels, np.arange(BATCH_SIZE, len(train_labels), BATCH_SIZE))
@@ -22,21 +31,14 @@ def train_network(train_images, train_labels,
     val_images_labels = np.split(valid_labels, np.arange(BATCH_SIZE, len(valid_labels), BATCH_SIZE))
 
     # Kernel for the convolution layer
-    kernel = init_random_kernel()
-    # kernel = [[[[1, 3], [5, -4]]]]
-    # kernel = np.asarray(kernel, dtype=np.float64)
-    # a = kernel.shape
+    kernel = generate_kernel(input_channels=3, output_channels=32, kernel_h=3, kernel_w=3)
 
-    # fc1_w = np.random.rand(60, 450) / np.sqrt(450)
-    # fc1_b = np.zeros((60, 1)) / np.sqrt(450)
-    fc1_stdv = 1. / np.sqrt(3136)
-    fc1_w = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(60, 3136))
-    fc1_b = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(60, 1))
+    fc1_stdv = 1. / np.sqrt(8192)
+    fc1_w = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 8192))  # 8192 is the size after the maxpool
+    fc1_b = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 1))
 
-    # fc2_w = np.random.rand(10, 60) / np.sqrt(60)
-    # fc2_b = np.zeros((10, 1)) / np.sqrt(60)
-    fc2_stdv = 1. / np.sqrt(60)
-    fc2_w = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 60))
+    fc2_stdv = 1. / np.sqrt(128)
+    fc2_w = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 128))
     fc2_b = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 1))
 
     learning_rate = 1e-3
@@ -56,9 +58,10 @@ def train_network(train_images, train_labels,
 
     for e in range(EPOCHS):
 
-        batch_loss = 0
-        batch_acc = 0
+        train_batch_loss = 0
+        train_batch_acc = 0
         train_samples = 0
+        start = timer()
 
         for idx, input_data in enumerate(train_images_batches):
             train_samples += input_data.shape[0]
@@ -79,23 +82,31 @@ def train_network(train_images, train_labels,
             # Forward Pass
             # ####################
             if use_fast_conv:
-                x_conv = fast_convolve_2d(input_data, kernel)
+                x_conv = fast_convolve_2d(input_data, kernel, padding=CONV_PADDING)
             else:
-                x_conv = convolve_2d(input_data, kernel)
+                x_conv = convolve_2d(input_data, kernel, padding=CONV_PADDING)
 
+            # Save the shape for later use (used during the backpropagation)
             conv_out_shape = x_conv.shape
+
+            # if use_dropout:
+            #     x_conv = cnn_dropout(x_conv, CONV_DROPOUT_PROBABILITY)
+
             x = ReLU(x_conv)
             if use_fast_conv:
                 x_maxpool, pos_maxpool_pos = fast_max_pool(x)
             else:
                 x_maxpool, pos_maxpool_pos = max_pool(x)
 
-            a = x_maxpool.shape
             x_flatten = flatten(x_maxpool)
 
             # First fc layer
             fc1 = np.matmul(fc1_w, x_flatten) + fc1_b
             fc2_input = ReLU(fc1)
+            a = fc2_input.shape
+
+            if use_dropout:
+                fc2_input = dense_dropout(fc2_input, DENSE_DROPOUT_PROBABILITY)
 
             # Second fc layer
             fc2 = np.matmul(fc2_w, fc2_input) + fc2_b
@@ -110,8 +121,8 @@ def train_network(train_images, train_labels,
             acc = accuracy(scores, input_labels) * input_data.shape[0]
 
             # compute for the entire epoch!
-            batch_acc += acc
-            batch_loss += ce
+            train_batch_acc += acc
+            train_batch_loss += ce
 
             # ####################
             # Backward Pass
@@ -141,44 +152,62 @@ def train_network(train_images, train_labels,
 
             # gradients through the maxpool operation
             if use_fast_conv:
-                delta_conv = fast_maxpool_backprop(delta_maxpool, conv_out_shape, padding=0, stride=2, max_pool_size=2,
-                                                   pos_result=pos_maxpool_pos)
+                delta_conv = fast_maxpool_backprop(
+                    delta_maxpool,
+                    conv_out_shape,
+                    padding=0,  # not working with padding, seems to be related to conv padding
+                    stride=2,
+                    max_pool_size=2,
+                    pos_result=pos_maxpool_pos)
             else:
-                delta_conv = fast_maxpool_backprop(delta_maxpool, pos_maxpool_pos, conv_out_shape)
+                delta_conv = maxpool_backprop(delta_maxpool, pos_maxpool_pos, conv_out_shape)
 
             delta_conv = np.multiply(delta_conv, dReLU(x_conv))
 
             if use_fast_conv:
-                conv1_delta = fast_convolution_backprop(input_data, kernel, delta_conv)
+                conv1_delta = fast_convolution_backprop(input_data, kernel, delta_conv, padding=CONV_PADDING)
             else:
-                conv1_delta = convolution_backprop(input_data, kernel, delta_conv)
+                conv1_delta = convolution_backprop(input_data, kernel, delta_conv, padding=CONV_PADDING)
 
-            # conv2_delta = test_conv_back(input_data, kernel, delta_conv)
+            if OPTIMIZER == 'ADAM':
+                momentum_w1 = beta1 * momentum_w1 + ((1 - beta1) * d_fc1_w)
+                momentum_w2 = beta1 * momentum_w2 + ((1 - beta1) * d_fc2_w)
+                momentum_b0 = beta1 * momentum_b0 + ((1 - beta1) * d_fc1_b)
+                momentum_b1 = beta1 * momentum_b1 + ((1 - beta1) * d_fc2_b)
+                momentum_conv1 = beta1 * momentum_conv1 + ((1 - beta1) * conv1_delta)
+                velocity_w1 = beta2 * velocity_w1 + ((1 - beta2) * d_fc1_w ** 2)
+                velocity_w2 = beta2 * velocity_w2 + ((1 - beta2) * d_fc2_w ** 2)
+                velocity_b0 = beta2 * velocity_b0 + ((1 - beta2) * d_fc1_b ** 2)
+                velocity_b1 = beta2 * velocity_b1 + ((1 - beta2) * d_fc2_b ** 2)
+                velocity_conv1 = beta2 * velocity_conv1 + ((1 - beta2) * conv1_delta ** 2)
 
-            momentum_w1 = beta1 * momentum_w1 + ((1 - beta1) * d_fc1_w)
-            momentum_w2 = beta1 * momentum_w2 + ((1 - beta1) * d_fc2_w)
-            momentum_b0 = beta1 * momentum_b0 + ((1 - beta1) * d_fc1_b)
-            momentum_b1 = beta1 * momentum_b1 + ((1 - beta1) * d_fc2_b)
-            momentum_conv1 = beta1 * momentum_conv1 + ((1 - beta1) * conv1_delta)
-            velocity_w1 = beta2 * velocity_w1 + ((1 - beta2) * d_fc1_w ** 2)
-            velocity_w2 = beta2 * velocity_w2 + ((1 - beta2) * d_fc2_w ** 2)
-            velocity_b0 = beta2 * velocity_b0 + ((1 - beta2) * d_fc1_b ** 2)
-            velocity_b1 = beta2 * velocity_b1 + ((1 - beta2) * d_fc2_b ** 2)
-            velocity_conv1 = beta2 * velocity_conv1 + ((1 - beta2) * conv1_delta ** 2)
+                kernel = kernel - learning_rate * momentum_conv1 / np.sqrt(velocity_conv1 + 0.0000001)
+                fc1_w = fc1_w - learning_rate * momentum_w1 / np.sqrt(velocity_w1 + 0.0000001)
+                fc2_w = fc2_w - learning_rate * momentum_w2 / np.sqrt(velocity_w2 + 0.0000001)
+                fc1_b = fc1_b - learning_rate * momentum_b0 / np.sqrt(velocity_b0 + 0.0000001)
+                fc2_b = fc2_b - learning_rate * momentum_b1 / np.sqrt(velocity_b1 + 0.0000001)
 
-            kernel = kernel - learning_rate * momentum_conv1 / np.sqrt(velocity_conv1 + 0.0000001)
-            fc1_w = fc1_w - learning_rate * momentum_w1 / np.sqrt(velocity_w1 + 0.0000001)
-            fc2_w = fc2_w - learning_rate * momentum_w2 / np.sqrt(velocity_w2 + 0.0000001)
-            fc1_b = fc1_b - learning_rate * momentum_b0 / np.sqrt(velocity_b0 + 0.0000001)
-            fc2_b = fc2_b - learning_rate * momentum_b1 / np.sqrt(velocity_b1 + 0.0000001)
+            elif OPTIMIZER == 'MOMENTUM':
+                velocity_w1 = beta1 * velocity_w1 + ((1 - beta1) * d_fc1_w)
+                velocity_w2 = beta1 * velocity_w2 + ((1 - beta1) * d_fc2_w)
+                velocity_b0 = beta1 * velocity_b0 + ((1 - beta1) * d_fc1_b)
+                velocity_b1 = beta1 * velocity_b1 + ((1 - beta1) * d_fc2_b)
+                velocity_conv1 = beta1 * velocity_conv1 + ((1 - beta1) * conv1_delta)
 
-            # fc2_w = fc2_w - learning_rate * d_fc2_w
-            # fc2_b = fc2_b - learning_rate * d_fc2_b
-            #
-            # fc1_w = fc1_w - learning_rate * d_fc1_w
-            # fc1_b = fc1_b - learning_rate * d_fc1_b
-            #
-            # kernel = kernel - learning_rate * conv1_delta
+                kernel = kernel - learning_rate * velocity_conv1
+                fc1_w = fc1_w - learning_rate * velocity_w1
+                fc2_w = fc2_w - learning_rate * velocity_w2
+                fc1_b = fc1_b - learning_rate * velocity_b0
+                fc2_b = fc2_b - learning_rate * velocity_b1
+
+            else:
+                fc2_w = fc2_w - learning_rate * d_fc2_w
+                fc2_b = fc2_b - learning_rate * d_fc2_b
+
+                fc1_w = fc1_w - learning_rate * d_fc1_w
+                fc1_b = fc1_b - learning_rate * d_fc1_b
+
+                kernel = kernel - learning_rate * conv1_delta
 
         # ##############################
         # VALIDATION
@@ -186,8 +215,6 @@ def train_network(train_images, train_labels,
         valid_batch_loss = 0
         valid_batch_acc = 0
         valid_samples = 0
-        valid_batch_torch_loss = 0
-        valid_batch_torch_acc = 0
         for idx, input_data in enumerate(val_images_batches):
             valid_samples += input_data.shape[0]
 
@@ -204,10 +231,10 @@ def train_network(train_images, train_labels,
             # Forward Pass
             # ####################
             if use_fast_conv:
-                x_conv = fast_convolve_2d(input_data, kernel)
+                x_conv = fast_convolve_2d(input_data, kernel, padding=CONV_PADDING)
             else:
-                x_conv = convolve_2d(input_data, kernel)
-            conv_out_shape = x_conv.shape
+                x_conv = convolve_2d(input_data, kernel, padding=CONV_PADDING)
+
             x = ReLU(x_conv)
 
             if use_fast_conv:
@@ -215,7 +242,6 @@ def train_network(train_images, train_labels,
             else:
                 x_maxpool, pos_maxpool_pos = max_pool(x)
 
-            a = x_maxpool.shape
             x_flatten = flatten(x_maxpool)
 
             # First fc layer
@@ -238,56 +264,31 @@ def train_network(train_images, train_labels,
             valid_batch_acc += acc
             valid_batch_loss += ce
 
-        print(train_samples)
-        print('Epoch: {} - Accuracy: {} - Loss: {}'.
-              format(e, (batch_acc / train_samples) / 1, (batch_loss / train_samples)))
-        print(valid_samples)
-        print('Epoch: {} - valid_batch_acc: {} - valid_batch_loss: {}'.
-              format(e, valid_batch_acc / valid_samples, valid_batch_loss / valid_samples))
-        print('***********************************')
+        end = timer()
+
+        print('=== EPOCH: {} ==='.format(e))
+        print('TRAIN Accuracy: {:.3f}\tTRAIN Loss: {:.3f}'.
+              format(train_batch_acc / train_samples, train_batch_loss / train_samples))
+
+        print('VALID Accuracy: {:.3f}\t\tVALID Loss: {:.3f}'.
+              format(valid_batch_acc / valid_samples, valid_batch_loss / valid_samples))
+        print("Elapsed time (s): {}".format(end - start))
+        print()
 
 
 def main():
     dataset = Cifar10()
 
-    # train_images, train_labels, \
-    # validation_images, validation_labels, \
-    # test_images, test_labels = dataset.get_small_datasets()
-    #
-    # train_network(train_images, train_labels, validation_images, validation_labels, test_images, test_labels, True)
-    train_network(dataset.train_images, dataset.train_labels,
-                  dataset.validation_images, dataset.validation_labels,
-                  dataset.test_images, dataset.test_labels, True)
+    train_images, train_labels, \
+        validation_images, validation_labels, \
+        test_images, test_labels = dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
 
-    # convolution_method_comparisons()
-    # test_naive_fast_max_pool()
-    # max_pool_backprop_test()
+    train_network(train_images, train_labels,
+                  validation_images, validation_labels,
+                  test_images, test_labels,
+                  True, False)
 
-    # test_naive_fast_max_pool()
-
-    #max_pool_backprop_test()
-
-    # The gradient is coming from the layer AFTER the maxpool
-    # so if the input image was (1, 2, 4, 4) - the output of the conv layer -
-    # then, the gradients should be (1, 2, 2, 2)
-
-    # ########################################
-    # WORKING WITH 1 CHANNEL
-    # ########################################
-    # delta_conv = np.zeros((12, 4))
-    # delta_conv_shape = delta_conv.shape
-    #
-    # x = np.zeros((4, 4), dtype=np.int32)
-    #
-    # col_indices = np.arange(delta_conv.shape[1])
-    #
-    # rows_indices = np.asarray([[2, 3, 0, 1]])
-    #
-    # np.add.at(x, (rows_indices, col_indices), [1, 2, 3, 4])
-
-
-
-
+    print()
 
 
 if __name__ == '__main__':
