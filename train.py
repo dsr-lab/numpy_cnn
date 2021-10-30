@@ -9,9 +9,9 @@ from cross_entropy import *
 from timeit import default_timer as timer
 
 BATCH_SIZE = 128
-EPOCHS = 100
-CONV_DROPOUT_PROBABILITY = 0.2
-DENSE_DROPOUT_PROBABILITY = 0.5
+EPOCHS = 35
+CONV_DROPOUT_PROBABILITY = 0.8
+DENSE_DROPOUT_PROBABILITY = 0.8
 
 OPTIMIZER = "ADAM"  # Valid values: ADAM, MOMENTUM
 CONV_PADDING = 1
@@ -78,9 +78,9 @@ def train_network(train_images, train_labels,
                 one_hot_encoding_labels[i, position] = 1
             one_hot_encoding_labels = one_hot_encoding_labels.T
 
-            # ####################
-            # Forward Pass
-            # ####################
+            # ################################################################################
+            # FORWARD PASS
+            # ################################################################################
             if use_fast_conv:
                 x_conv = fast_convolve_2d(input_data, kernel, padding=CONV_PADDING)
             else:
@@ -89,8 +89,8 @@ def train_network(train_images, train_labels,
             # Save the shape for later use (used during the backpropagation)
             conv_out_shape = x_conv.shape
 
-            # if use_dropout:
-            #     x_conv = cnn_dropout(x_conv, CONV_DROPOUT_PROBABILITY)
+            #if use_dropout:
+            #    x_conv = cnn_dropout(x_conv, CONV_DROPOUT_PROBABILITY)
 
             x = ReLU(x_conv)
             if use_fast_conv:
@@ -111,7 +111,7 @@ def train_network(train_images, train_labels,
             # Second fc layer
             fc2 = np.matmul(fc2_w, fc2_input) + fc2_b
 
-            # Finally apply the softmax
+            # Apply the softmax for computing the scores
             scores = softmax(fc2)
 
             # Compute the cross entropy loss
@@ -124,18 +124,9 @@ def train_network(train_images, train_labels,
             train_batch_acc += acc
             train_batch_loss += ce
 
-            # ####################
-            # Backward Pass
-            # ####################
-
-            # Start computing the derivatives required from the backpropagation algorithm
-            # The 1st derivative is the one related to the softmax.
-            # The softmax is a vector, therefore we have to compute the Jacobian.
-            # In each cell of the Jacobian we have the partial derivative of the i-th output WRT the j-th input.
-
-            # The input of the softmax is the fc2_output
-            # The output of the softmax is a vector, whose element sum up to one.
-
+            # ################################################################################
+            # BACKWARD PASS
+            # ################################################################################
             delta_2 = (scores - one_hot_encoding_labels)
             d_fc2_w = delta_2 @ fc2_input.T
             d_fc2_b = np.sum(delta_2, axis=1, keepdims=True)
@@ -209,9 +200,9 @@ def train_network(train_images, train_labels,
 
                 kernel = kernel - learning_rate * conv1_delta
 
-        # ##############################
+        # ################################################################################
         # VALIDATION
-        # ##############################
+        # ################################################################################
         valid_batch_loss = 0
         valid_batch_acc = 0
         valid_samples = 0
@@ -286,7 +277,7 @@ def main():
     train_network(train_images, train_labels,
                   validation_images, validation_labels,
                   test_images, test_labels,
-                  True, False)
+                  True, True)
 
     print()
 
