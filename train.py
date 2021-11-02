@@ -15,12 +15,12 @@ DENSE_DROPOUT_PROBABILITY = 0.8
 
 OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
 CONV_PADDING = 0
-TRAIN_SMALL_DATASET = False
+TRAIN_SMALL_DATASET = True
 
 
 def train_network(train_images, train_labels,
-                  test_images, test_labels,
-                  valid_images, valid_labels,
+                    valid_images, valid_labels,
+                    test_images, test_labels,
                   use_fast_conv,
                   use_dropout):
 
@@ -35,13 +35,21 @@ def train_network(train_images, train_labels,
     kernel = generate_kernel(input_channels=3, output_channels=8, kernel_h=3, kernel_w=3)
     kernel2 = generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3)
 
-    fc1_stdv = 1. / np.sqrt(3136)
-    fc1_w = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 3136))  # 16384 is the size after the maxpool
-    fc1_b = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 1))
 
-    fc2_stdv = 1. / np.sqrt(64)
-    fc2_w = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 128))
-    fc2_b = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 1))
+
+    #fc1_stdv = 1. / np.sqrt(3136)
+    #fc1_w = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 3136))  # 16384 is the size after the maxpool
+    # fc1_b = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 1))
+    fc1_w = np.random.standard_normal((128, 3136)) * np.sqrt(2/3136)
+    fc1_b = np.zeros((128, 1)) * np.sqrt(2/3136)
+    #fc1_b = np.random.randn(128, 1) * np.sqrt(2/3136)
+
+    #fc2_stdv = 1. / np.sqrt(128)
+    #fc2_w = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 128))
+    #fc2_b = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 1))
+    fc2_w = np.random.standard_normal((10, 128)) * np.sqrt(2/128)
+    fc2_b = np.zeros((10, 1)) * np.sqrt(2 / 128)
+    #fc2_b = np.random.randn(10, 1) * np.sqrt(2/128)
 
     learning_rate = 1e-3
 

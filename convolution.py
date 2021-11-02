@@ -225,11 +225,17 @@ def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3
 
     if random:
         # return np.random.rand(output_channels, input_channels, kernel_h, kernel_w) * np.sqrt(1./3.)
-        n = input_channels
-        for k in (kernel_h, kernel_w):
-            n *= k
-        stdv = 1. / np.sqrt(n)
-        return np.random.uniform(low=-stdv, high=stdv, size=(output_channels, input_channels, kernel_h, kernel_w))
+        n = output_channels * kernel_h * kernel_w
+        #for k in (kernel_h, kernel_w):
+        #    n *= k
+
+        receptive_field_size = kernel_h * kernel_w
+        fan_in = input_channels * receptive_field_size
+
+        #stdv = 1. / np.sqrt(n)
+        #return np.random.uniform(low=-stdv, high=stdv, size=(output_channels, input_channels, kernel_h, kernel_w))
+
+        return np.random.standard_normal((output_channels, input_channels, kernel_h, kernel_w)) * np.sqrt(2 / fan_in)
 
     else:
         return np.ones((output_channels, input_channels, kernel_h, kernel_w)) * 2
