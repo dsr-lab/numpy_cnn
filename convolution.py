@@ -111,6 +111,9 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
     dW = np.zeros(kernel.shape)
     dW_shape = dW.shape
 
+    dX = np.zeros(X.shape)
+    dX = np.zeros_like(X)
+
     # Cycle all the images in the batch
     for image_idx in range(X.shape[0]):
         # Cycle all the filters in the convolutional layer
@@ -119,7 +122,7 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
         # Apply padding
         current_image = np.pad(current_image, ((0, 0), (padding, padding), (padding, padding)), mode='constant')
         a = current_image.shape
-        # We have to compute the derivative for every filter which is in the layer
+        # We have to compute the derivative for each filter in the layer
         for filter_position in range(kernel.shape[0]):
 
             # Slide the image, starting from its height.
@@ -148,7 +151,40 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
                                 out = image_portion[channel, :, :] * gradient_values[image_idx, filter_position, i, j]
                                 dW[filter_position, channel, :, :] += out
 
-    return dW
+    # for row in range(0, X.shape[2], stride):
+    #     for col in range(0, X.shape[3], stride):
+    #         for current_filter in range(0, kernel.shape[0]):
+    #             for output_channel in range(0, gradient_values.shape[1]):
+    #
+    #                 filter_portion = kernel[output_channel, :, row, col]
+    #                 a = filter_portion * gradient_values[:, output_channel, 0, 0]
+    #                 #dX[:, :, row, col] =
+
+    # 0-padding juste sur les deux dernières dimensions de dx
+    dxp = np.pad(dX, ((0,), (0,), (padding,), (padding,)), 'constant')
+    doutp = np.pad(gradient_values, ((0,), (0,), (kernel_w - 1,), (kernel_h - 1,)), 'constant')
+
+    # filtre inversé dimension (F, C, HH, WW)
+    w_ = np.zeros_like(kernel)
+    for i in range(kernel_h):
+        for j in range(kernel_w):
+            w_[:, :, i, j] = kernel[:, :, kernel_h - i - 1, kernel_w - j - 1]
+
+    # Version sans vectorisation
+    for n in range(X.shape[0]):  # On parcourt toutes les images
+        for f in range(output_channels):  # On parcourt tous les filtres
+            for i in range(X.shape[2] + 2 * padding):  # indices de l'entrée participant au résultat
+                for j in range(X.shape[3] + 2 * padding):
+                    for k in range(kernel_h):  # indices du filtre
+                        for l in range(kernel_w):
+                            for c in range(X.shape[1]):  # profondeur
+                                dxp[n, c, i, j] += doutp[n, f, i + k, j + l] * w_[f, c, k, l]
+    # Remove padding for dx
+    dxp_shape = dxp.shape
+
+    dX = dxp[:, :, padding:dX.shape[2], padding:dX.shape[3]]
+
+    return dW, dX
 
 
 def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride=1):
@@ -176,11 +212,13 @@ def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride
     # Perform matrix multiplication between reshaped dout and X_col to get dW_col.
     dw_col = dout @ X_col.T
     # Reshape back to image (col2im).
-    # dX = col2im(dX_col, inputs, kernel_h, kernel_w, stride, padding)
+    a = inputs.shape
+    dX = col2im(dX_col, inputs.shape, kernel_h, kernel_w, stride, padding)
+    a = dX.shape
     # Reshape dw_col into dw.
     dW = dw_col.reshape((dw_col.shape[0], in_channels, kernel_h, kernel_w))
 
-    return dW
+    return dW, dX
 
 
 def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3, random=True):

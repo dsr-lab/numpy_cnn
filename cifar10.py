@@ -83,7 +83,7 @@ class Cifar10:
                 file_images = dictionary.get(b'data')
                 file_labels = dictionary.get(b'labels')
 
-                file_images = file_images / 255
+                #file_images = file_images / 255
                 file_images = file_images.reshape(10000, 3, 32, 32)
 
                 images[idx * 10000:10000 * (idx + 1)] = file_images
@@ -113,7 +113,12 @@ class Cifar10:
         self.train_images = self.train_images[:45000]
         self.train_labels = self.train_labels[:45000]
 
-        a = self.train_labels
+        a = self.train_images.min()
+        b = self.train_images.max()
+
+        c = self.validation_images.min()
+        d = self.validation_images.max()
+
         print()
 
     @staticmethod

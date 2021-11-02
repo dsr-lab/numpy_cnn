@@ -75,7 +75,7 @@ def convolution_method_comparisons():
     #     [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]]
     # ]
 
-    X = np.asarray(X, dtype=np.float64)
+    X = np.asarray(X, dtype=np.float32)
     kernel = generate_kernel(kernel_h=2, kernel_w=2, input_channels=3, output_channels=2, random=False)
     kernel2 = generate_kernel(kernel_h=2, kernel_w=2, input_channels=1, output_channels=2, random=False)
 
@@ -100,20 +100,22 @@ def convolution_method_comparisons():
     #         [[1, 2, 3], [1, 0, 2], [9, 1, 1]]
     #     ]
     # ]
-    gradient_values = np.asarray(gradient_values, dtype=np.float64)
+    gradient_values = np.asarray(gradient_values, dtype=np.float32)
 
-    a = fast_convolution_backprop(X, kernel, gradient_values)
-    b = convolution_backprop(X, kernel, gradient_values)
+    dw1, dx1 = fast_convolution_backprop(X, kernel, gradient_values)
+    dw2, dx2 = convolution_backprop(X, kernel, gradient_values)
 
     if (convolution_result == convolution_result2).all():
         print("CONV EQUAL")
     else:
         print("CONV NOT EQUAL")
 
-    if (a == b).all():
+    if (dw1 == dw2).all() and (dx1 == dx2).all():
         print("BACKPROB EQUAL")
     else:
         print("BACKPROP NOT EQUAL")
+
+
 
     print()
 
@@ -134,7 +136,7 @@ def max_pool_backprop_test():
          #[[19, 1, 27, 2], [51, 1, 0, 9], [82, 2, 4, 9], [4, 3, 1, 11]]]
     ]
 
-    conv_data = np.asarray(conv_data, dtype=np.float64)
+    conv_data = np.asarray(conv_data, dtype=np.float32)
     conv_data_shape = conv_data.shape
 
     # maxpool_result, maxpool_pos_indices = max_pool(conv_data)
@@ -155,7 +157,7 @@ def max_pool_backprop_test():
          #[[5, 6], [7, 8]],
          #[[9, 10], [11, 12]]]
     ]
-    bp = np.asarray(bp, dtype=np.float64)
+    bp = np.asarray(bp, dtype=np.float32)
     bp_shape = bp.shape
 
     # 1) the gradients flowing back in the network during backprop
@@ -185,7 +187,7 @@ def test_max_pool():
          [[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]]]
     ]
 
-    data = np.asarray(data, dtype=np.float64)
+    data = np.asarray(data, dtype=np.float32)
 
     # (2, 3, 4, 4) e.g.: 2 images, with 3 channels, 4 rows (height) and 4 columns (width)
     data_shape = data.shape
@@ -196,7 +198,7 @@ def test_max_pool():
     # new_img = np.squeeze(new_img, axis=0)
     new_img_shape = new_img.shape
     # new_img = np.squeeze(new_img, axis=0)
-    new_img = np.asarray(new_img, dtype=np.float64)
+    new_img = np.asarray(new_img, dtype=np.float32)
     pos_result = np.asarray(pos_result, dtype=np.int32)
 
     # delta_conv = np.multiply(delta_conv, dReLU(X_conv))
@@ -220,7 +222,7 @@ def test_naive_fast_max_pool():
             [[41, 42, 43, 44], [45, 46, 47, 48], [49, 50, 51, 52], [53, 54, 55, 56]],
         ]
     ]
-    data = np.asarray(data, dtype=np.float64)
+    data = np.asarray(data, dtype=np.float32)
     a = data.shape
     data = np.random.randint(0, high=255, size=(1, 3, 4, 4))
     b = data.shape
@@ -253,3 +255,29 @@ def test_softmax():
     result = softmax(scores)
     print(result)
     print('softmax computed')
+
+# ################################################################################
+# GRADIENT CHECK
+# ################################################################################
+
+def gradient_check(x, theta, J_plus, J_minus, grad, epsilon=1e-7):
+
+
+    #J_plus = forward_propagation(x, thetaplus)
+    #J_minus = forward_propagation(x, thetaminus)
+
+    gradapprox = (J_plus - J_minus) / (2 * epsilon)
+
+    # Check if gradapprox is close enough to backward propagation
+    #grad = backward_propagation(x, theta)
+
+    numerator = np.linalg.norm(grad - gradapprox)
+    denominator = np.linalg.norm(grad) + np.linalg.norm(gradapprox)
+    difference = numerator / denominator
+
+    if difference < 1e-7:
+        print('The gradient is correct')
+    else:
+        print('The gradient is wrong')
+
+    return difference

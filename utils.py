@@ -138,6 +138,9 @@ def im2col_(images, filter_h, filter_w, stride, pad):
 
 
 def col2im(dX_col, X_shape, HF, WF, stride, pad):
+
+    a = X_shape
+
     # Get input size
     N, D, H, W = X_shape
     # Add padding if needed.
@@ -151,8 +154,10 @@ def col2im(dX_col, X_shape, HF, WF, stride, pad):
     # Reshape our matrix back to image.
     # slice(None) is used to produce the [::] effect which means "for every elements".
     np.add.at(X_padded, (slice(None), d, i, j), dX_col_reshaped)
+    X_padded_shape = X_padded.shape
     # Remove padding from new image if needed.
     if pad == 0:
         return X_padded
     elif type(pad) is int:
-        return X_padded[pad:-pad, pad:-pad, :, :]
+        # return X_padded[pad:-pad, pad:-pad, :, :]
+        return X_padded[:, :, pad:-pad, pad:-pad]
