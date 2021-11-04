@@ -9,8 +9,8 @@ from cross_entropy import *
 from timeit import default_timer as timer
 
 BATCH_SIZE = 128
-EPOCHS = 45
-CONV_DROPOUT_PROBABILITY = 0.8
+EPOCHS = 100
+CONV_DROPOUT_PROBABILITY = 0.9
 DENSE_DROPOUT_PROBABILITY = 0.8
 
 OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
@@ -40,15 +40,15 @@ def train_network(train_images, train_labels,
     #fc1_stdv = 1. / np.sqrt(3136)
     #fc1_w = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 3136))  # 16384 is the size after the maxpool
     # fc1_b = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 1))
-    fc1_w = np.random.standard_normal((128, 3136)) * np.sqrt(2/3136)
-    fc1_b = np.zeros((128, 1)) * np.sqrt(2/3136)
-    #fc1_b = np.random.randn(128, 1) * np.sqrt(2/3136)
+    fc1_w = np.random.standard_normal((64, 3136)) * np.sqrt(2/3136)
+    fc1_b = np.zeros((64, 1)) * np.sqrt(2/3136)
+    #fc1_b = np.random.randn(128, 1) * np.sqrt(2/6272)
 
     #fc2_stdv = 1. / np.sqrt(128)
     #fc2_w = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 128))
     #fc2_b = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 1))
-    fc2_w = np.random.standard_normal((10, 128)) * np.sqrt(2/128)
-    fc2_b = np.zeros((10, 1)) * np.sqrt(2 / 128)
+    fc2_w = np.random.standard_normal((10, 64)) * np.sqrt(2/64)
+    fc2_b = np.zeros((10, 1)) * np.sqrt(2 / 64)
     #fc2_b = np.random.randn(10, 1) * np.sqrt(2/128)
 
     learning_rate = 1e-3
@@ -75,6 +75,7 @@ def train_network(train_images, train_labels,
         train_batch_loss = 0
         train_batch_acc = 0
         train_samples = 0
+
         start = timer()
 
         for idx, input_data in enumerate(train_images_batches):
@@ -104,8 +105,8 @@ def train_network(train_images, train_labels,
             # Save the shape for later use (used during the backpropagation)
             conv_out_shape = x_conv.shape
 
-            #if use_dropout:
-            #    x_conv = cnn_dropout(x_conv, CONV_DROPOUT_PROBABILITY)
+            if use_dropout:
+                x_conv = cnn_dropout(x_conv, CONV_DROPOUT_PROBABILITY)
 
             conv2_input = ReLU(x_conv)
 
@@ -116,6 +117,9 @@ def train_network(train_images, train_labels,
                 x_conv2 = fast_convolve_2d(conv2_input, kernel2, padding=CONV_PADDING)
             else:
                 x_conv2 = convolve_2d(conv2_input, kernel2, padding=CONV_PADDING)
+
+            if use_dropout:
+                x_conv2 = cnn_dropout(x_conv2, CONV_DROPOUT_PROBABILITY)
 
             # Save the shape for later use (used during the backpropagation)
             conv_out_shape2 = x_conv2.shape
@@ -149,7 +153,7 @@ def train_network(train_images, train_labels,
             scores = softmax(fc2)
 
             # Compute the cross entropy loss
-            ce = cross_entropy(scores, one_hot_encoding_labels) * input_data.shape[0]
+            ce = cross_entropy(scores, one_hot_encoding_labels, input_labels) * input_data.shape[0]
 
             # Compute prediction and accuracy
             acc = accuracy(scores, input_labels) * input_data.shape[0]
@@ -327,7 +331,7 @@ def train_network(train_images, train_labels,
             scores = softmax(fc2)
 
             # Compute the cross entropy loss
-            ce = cross_entropy(scores, one_hot_encoding_labels) * input_data.shape[0]
+            ce = cross_entropy(scores, one_hot_encoding_labels, input_labels) * input_data.shape[0]
 
             # Compute prediction and accuracy
             acc = accuracy(scores, input_labels) * input_data.shape[0]
@@ -354,6 +358,14 @@ def main():
     train_images, train_labels, \
         validation_images, validation_labels, \
         test_images, test_labels = dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
+
+    #a = np.array([0, 3, 0, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 3, 4])
+    unique, counts = np.unique(train_labels, return_counts=True)
+    a = dict(zip(unique, counts))
+    unique, counts = np.unique(validation_labels, return_counts=True)
+    b = dict(zip(unique, counts))
+    unique, counts = np.unique(test_labels, return_counts=True)
+    c = dict(zip(unique, counts))
 
     train_network(train_images, train_labels,
                   validation_images, validation_labels,
