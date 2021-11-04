@@ -11,6 +11,8 @@ matplotlib.use("TkAgg")
 def show_gray_scale_image(image, title=None):
     a = image.shape
     # initially (3, 32, 32), pyplot expects (32, 32, 3)
+    #plt.imshow(np.transpose(image, (1, 2, 0)))
+    image = image.squeeze(axis=0)
     plt.imshow(image, cmap='gray')
     plt.axis('off')
     plt.show(block=True)
@@ -41,7 +43,9 @@ def accuracy(scores, labels):
 
     n_correct = (labels == predictions).sum()
 
-    acc = n_correct / n_samples
+    #acc = n_correct / n_samples
+
+    acc = np.true_divide(n_correct, n_samples)
 
     return acc
 

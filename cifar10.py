@@ -72,7 +72,7 @@ class Cifar10:
         # There are 60000 images. Each image is 3x32x32 = 3072
         # There are 60000 labels
         images = np.zeros(shape=(60000, 3, 32, 32))
-        labels = np.zeros(shape=(60000,))
+        labels = np.zeros(shape=(60000,), dtype=np.int)
         # Process each file and append images and labels to the
         # correct array
         for idx, file_name in enumerate(expected_files):
@@ -94,9 +94,12 @@ class Cifar10:
         self.train_labels, self.test_labels = labels[:50000], labels[50000:]
 
         # Shuffle the train set
+        np.random.seed(31)
         permutation_indices = np.random.permutation(len(self.train_images))
         self.train_images = self.train_images[permutation_indices]
         self.train_labels = self.train_labels[permutation_indices]
+        a = self.train_labels.shape
+        print()
 
         # Normalize with mean and std
         # mean_train = self.train_images.mean(axis=(0, 2, 3), keepdims=True)
@@ -113,9 +116,6 @@ class Cifar10:
 
         self.train_images = self.train_images[:45000]
         self.train_labels = self.train_labels[:45000]
-
-
-        print()
 
     @staticmethod
     def __download_progress(block_num, block_size, total_size):

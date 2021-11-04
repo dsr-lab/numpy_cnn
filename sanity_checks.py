@@ -13,13 +13,13 @@ def test_naive_fast_convolutions():
     img = [
         [
             [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
-            [[17, 18, 19, 20], [21, 22, 23, 24], [25, 26, 27, 28], [29, 30, 31, 32]],
-            [[33, 34, 35, 36], [37, 38, 39, 40], [41, 42, 43, 44], [45, 46, 47, 48]]
+            #[[17, 18, 19, 20], [21, 22, 23, 24], [25, 26, 27, 28], [29, 30, 31, 32]],
+            #[[33, 34, 35, 36], [37, 38, 39, 40], [41, 42, 43, 44], [45, 46, 47, 48]]
         ],
         [
             [[111, 211, 311, 411], [511, 611, 711, 811], [911, 1011, 1111, 121], [131, 141, 151, 161]],
-            [[171, 181, 191, 201], [211, 221, 231, 241], [251, 261, 271, 281], [291, 301, 311, 321]],
-            [[331, 341, 351, 361], [371, 381, 391, 401], [411, 421, 431, 441], [451, 461, 471, 481]]
+            #[[171, 181, 191, 201], [211, 221, 231, 241], [251, 261, 271, 281], [291, 301, 311, 321]],
+            #[[331, 341, 351, 361], [371, 381, 391, 401], [411, 421, 431, 441], [451, 461, 471, 481]]
         ]
     ]
     img = np.asarray(img)
@@ -39,13 +39,18 @@ def test_naive_fast_convolutions():
             [[21, 22], [23, 24]]  # input channel 3
         ]
     ]
+
+    #def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3, random=True):
+    kernel = np.ones((1, 1, 2, 2))
     kernel = np.asarray(kernel)
 
+    padding = 0
+
     # Call the faster convolution version
-    conv1 = fast_convolve_2d(img, kernel, padding=1)
+    conv1 = fast_convolve_2d(img, kernel, padding=padding)
 
     # Call the naive convolution version
-    conv2 = convolve_2d(img, kernel, padding=1)
+    conv2 = convolve_2d(img, kernel, padding=padding)
 
     conv1_shape = conv1.shape
 

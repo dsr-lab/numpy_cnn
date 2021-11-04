@@ -1,6 +1,7 @@
 from cifar10 import Cifar10
 from dropout import *
 from flatten import flatten
+from mnist import Mnist
 from relu import ReLU, dReLU
 from sanity_checks import *
 from softmax import *
@@ -9,13 +10,13 @@ from cross_entropy import *
 from timeit import default_timer as timer
 
 BATCH_SIZE = 128
-EPOCHS = 100
+EPOCHS = 50
 CONV_DROPOUT_PROBABILITY = 0.9
 DENSE_DROPOUT_PROBABILITY = 0.8
 
 OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
 CONV_PADDING = 0
-TRAIN_SMALL_DATASET = True
+TRAIN_SMALL_DATASET = False
 
 
 def train_network(train_images, train_labels,
@@ -32,24 +33,14 @@ def train_network(train_images, train_labels,
     val_images_labels = np.split(valid_labels, np.arange(BATCH_SIZE, len(valid_labels), BATCH_SIZE))
 
     # Kernel for the convolution layer
-    kernel = generate_kernel(input_channels=3, output_channels=8, kernel_h=3, kernel_w=3)
+    kernel = generate_kernel(input_channels=1, output_channels=8, kernel_h=3, kernel_w=3)
     kernel2 = generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3)
 
+    fc1_w = np.random.standard_normal((64, 2304)) * np.sqrt(2/2304)
+    fc1_b = np.zeros((64, 1))
 
-
-    #fc1_stdv = 1. / np.sqrt(3136)
-    #fc1_w = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 3136))  # 16384 is the size after the maxpool
-    # fc1_b = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 1))
-    fc1_w = np.random.standard_normal((64, 3136)) * np.sqrt(2/3136)
-    fc1_b = np.zeros((64, 1)) * np.sqrt(2/3136)
-    #fc1_b = np.random.randn(128, 1) * np.sqrt(2/6272)
-
-    #fc2_stdv = 1. / np.sqrt(128)
-    #fc2_w = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 128))
-    #fc2_b = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 1))
     fc2_w = np.random.standard_normal((10, 64)) * np.sqrt(2/64)
-    fc2_b = np.zeros((10, 1)) * np.sqrt(2 / 64)
-    #fc2_b = np.random.randn(10, 1) * np.sqrt(2/128)
+    fc2_b = np.zeros((10, 1))
 
     learning_rate = 1e-3
 
@@ -79,6 +70,7 @@ def train_network(train_images, train_labels,
         start = timer()
 
         for idx, input_data in enumerate(train_images_batches):
+
             train_samples += input_data.shape[0]
 
             input_labels = train_images_labels[idx]
@@ -86,7 +78,7 @@ def train_network(train_images, train_labels,
             # One hot encoding
             one_hot_encoding_labels = np.zeros((input_labels.size, 10))
             for i in range(input_labels.shape[0]):
-                position = int(input_labels[i])
+                position = input_labels[i]
                 one_hot_encoding_labels[i, position] = 1
             one_hot_encoding_labels = one_hot_encoding_labels.T
 
@@ -172,6 +164,7 @@ def train_network(train_images, train_labels,
             delta_1 = np.multiply(fc2_w.T @ delta_2, dReLU(fc1))
             d_fc1_w = delta_1 @ x_flatten.T
             d_fc1_b = np.sum(delta_1, axis=1, keepdims=True)
+            b = delta_1.shape
 
             # gradient WRT x0
             delta_0 = np.multiply(fc1_w.T @ delta_1, 1.0)
@@ -282,7 +275,7 @@ def train_network(train_images, train_labels,
             # One hot encoding
             one_hot_encoding_labels = np.zeros((input_labels.size, 10))
             for i in range(input_labels.shape[0]):
-                position = int(input_labels[i])
+                position = input_labels[i]
                 one_hot_encoding_labels[i, position] = 1
             one_hot_encoding_labels = one_hot_encoding_labels.T
 
@@ -329,6 +322,7 @@ def train_network(train_images, train_labels,
 
             # Finally apply the softmax
             scores = softmax(fc2)
+            # scores = fc2
 
             # Compute the cross entropy loss
             ce = cross_entropy(scores, one_hot_encoding_labels, input_labels) * input_data.shape[0]
@@ -353,7 +347,7 @@ def train_network(train_images, train_labels,
 
 
 def main():
-    dataset = Cifar10()
+    dataset = Mnist()
 
     train_images, train_labels, \
         validation_images, validation_labels, \

@@ -237,5 +237,6 @@ def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3
 
         return np.random.standard_normal((output_channels, input_channels, kernel_h, kernel_w)) * np.sqrt(2 / fan_in)
 
+
     else:
         return np.ones((output_channels, input_channels, kernel_h, kernel_w)) * 2
