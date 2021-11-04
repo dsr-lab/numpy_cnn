@@ -40,15 +40,15 @@ def train_network(train_images, train_labels,
     #fc1_stdv = 1. / np.sqrt(3136)
     #fc1_w = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 3136))  # 16384 is the size after the maxpool
     # fc1_b = np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(128, 1))
-    fc1_w = np.random.standard_normal((64, 3136)) * np.sqrt(2/3136)
-    fc1_b = np.zeros((64, 1)) * np.sqrt(2/3136)
+    fc1_w = np.random.standard_normal((3136, 64)) * np.sqrt(2/3136)
+    fc1_b = np.zeros((1, 64)) * np.sqrt(2/3136)
     #fc1_b = np.random.randn(128, 1) * np.sqrt(2/6272)
 
     #fc2_stdv = 1. / np.sqrt(128)
     #fc2_w = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 128))
     #fc2_b = np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(10, 1))
-    fc2_w = np.random.standard_normal((10, 64)) * np.sqrt(2/64)
-    fc2_b = np.zeros((10, 1)) * np.sqrt(2 / 64)
+    fc2_w = np.random.standard_normal((64, 10)) * np.sqrt(2/64)
+    fc2_b = np.zeros((1, 10)) * np.sqrt(2 / 64)
     #fc2_b = np.random.randn(10, 1) * np.sqrt(2/128)
 
     learning_rate = 1e-3
@@ -88,7 +88,7 @@ def train_network(train_images, train_labels,
             for i in range(input_labels.shape[0]):
                 position = int(input_labels[i])
                 one_hot_encoding_labels[i, position] = 1
-            one_hot_encoding_labels = one_hot_encoding_labels.T
+            one_hot_encoding_labels = one_hot_encoding_labels
 
             # ################################################################################
             # FORWARD PASS
@@ -140,20 +140,25 @@ def train_network(train_images, train_labels,
             x_flatten = flatten(x_maxpool)
 
             # First fc layer
-            fc1 = np.matmul(fc1_w, x_flatten) + fc1_b
+            fc1 = np.matmul(x_flatten, fc1_w) + fc1_b
             fc2_input = ReLU(fc1)
 
             if use_dropout:
                 fc2_input = dense_dropout(fc2_input, DENSE_DROPOUT_PROBABILITY)
 
+            a = fc2_input.shape
+            b = fc2_w.shape
+
             # Second fc layer
-            fc2 = np.matmul(fc2_w, fc2_input) + fc2_b
+            fc2 = np.matmul(fc2_input, fc2_w) + fc2_b
 
             # Apply the softmax for computing the scores
             scores = softmax(fc2)
+            #scores = fc2
 
             # Compute the cross entropy loss
             ce = cross_entropy(scores, one_hot_encoding_labels, input_labels) * input_data.shape[0]
+            #loss = F.cross_entropy(torch.as_tensor(scores), torch.as_tensor(input_labels).long()) * input_data.shape[0]
 
             # Compute prediction and accuracy
             acc = accuracy(scores, input_labels) * input_data.shape[0]
@@ -166,15 +171,15 @@ def train_network(train_images, train_labels,
             # BACKWARD PASS
             # ################################################################################
             delta_2 = (scores - one_hot_encoding_labels)
-            d_fc2_w = delta_2 @ fc2_input.T
-            d_fc2_b = np.sum(delta_2, axis=1, keepdims=True)
+            d_fc2_w = fc2_input.T @ delta_2
+            d_fc2_b = np.sum(delta_2, axis=0, keepdims=True)  # TODO: check axis
 
-            delta_1 = np.multiply(fc2_w.T @ delta_2, dReLU(fc1))
-            d_fc1_w = delta_1 @ x_flatten.T
-            d_fc1_b = np.sum(delta_1, axis=1, keepdims=True)
+            delta_1 = np.multiply(delta_2 @ fc2_w.T, dReLU(fc1))
+            d_fc1_w = x_flatten.T @ delta_1
+            d_fc1_b = np.sum(delta_1, axis=0, keepdims=True)  # TODO: check axis
 
             # gradient WRT x0
-            delta_0 = np.multiply(fc1_w.T @ delta_1, 1.0)
+            delta_0 = np.multiply(delta_1 @ fc1_w.T, 1.0)
 
             # unflatten operation
             delta_maxpool = delta_0.reshape(x_maxpool.shape)
@@ -284,7 +289,7 @@ def train_network(train_images, train_labels,
             for i in range(input_labels.shape[0]):
                 position = int(input_labels[i])
                 one_hot_encoding_labels[i, position] = 1
-            one_hot_encoding_labels = one_hot_encoding_labels.T
+            one_hot_encoding_labels = one_hot_encoding_labels
 
             # ################################################################################
             # FORWARD PASS
@@ -318,20 +323,25 @@ def train_network(train_images, train_labels,
             else:
                 x_maxpool, pos_maxpool_pos = max_pool(maxpool_input)
 
+            # ********************
+            # FLATTEN + FCs
+            # ********************
             x_flatten = flatten(x_maxpool)
 
             # First fc layer
-            fc1 = np.matmul(fc1_w, x_flatten) + fc1_b
+            fc1 = np.matmul(x_flatten, fc1_w) + fc1_b
             fc2_input = ReLU(fc1)
 
             # Second fc layer
-            fc2 = np.matmul(fc2_w, fc2_input) + fc2_b
+            fc2 = np.matmul(fc2_input, fc2_w) + fc2_b
 
-            # Finally apply the softmax
+            # Apply the softmax for computing the scores
             scores = softmax(fc2)
+            #scores = fc2
 
             # Compute the cross entropy loss
             ce = cross_entropy(scores, one_hot_encoding_labels, input_labels) * input_data.shape[0]
+            # loss = F.cross_entropy(torch.as_tensor(scores), torch.as_tensor(input_labels).long()) * input_data.shape[0]
 
             # Compute prediction and accuracy
             acc = accuracy(scores, input_labels) * input_data.shape[0]

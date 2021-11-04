@@ -35,9 +35,9 @@ def show_image(image, title=None):
 # METRICS
 # ################################################################################
 def accuracy(scores, labels):
-    n_samples = scores.shape[1]
+    n_samples = scores.shape[0]
 
-    predictions = np.argmax(scores, axis=0)
+    predictions = np.argmax(scores, axis=1)
 
     n_correct = (labels == predictions).sum()
 
