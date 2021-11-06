@@ -7,12 +7,8 @@ def softmax(scores):
 
     #np.exp(scores) / np.sum(np.exp(scores), axis=1, keepdims=True)
 
-    e_x = np.exp(scores) # - np.max(scores))
-    result = e_x / e_x.sum(axis=0)
-
-    # OLD VERSION
-    # e_x2 = np.exp(scores - np.max(scores))
-    # result2 = e_x2 / e_x2.sum(axis=0)
+    e_x2 = np.exp(scores - np.max(scores))
+    result = e_x2 / e_x2.sum(axis=0)
 
 
 

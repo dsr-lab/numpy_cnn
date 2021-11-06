@@ -17,7 +17,7 @@ CONV_PADDING = 0
 
 OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
 
-TRAIN_SMALL_DATASET = False
+TRAIN_SMALL_DATASET = True
 USE_CIFAR_10 = True
 
 
@@ -40,17 +40,17 @@ def train_network(train_images, train_labels,
         fan_in = 3136
 
     # Kernel for the convolution layer
-    # kernel = generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3)
-    kernel = np.random.randn(8, 3, 3, 3) / np.sqrt(8192 / 2)
-    # kernel2 = generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3)
-    kernel2 = np.random.randn(16, 8, 3, 3) / np.sqrt(7200 / 2)
+    kernel = generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3)
+    #kernel = np.random.randn(8, 3, 3, 3) / np.sqrt(8192 / 2)
+    kernel2 = generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3)
+    #kernel2 = np.random.randn(16, 8, 3, 3) / np.sqrt(7200 / 2)
 
-    # fc1_w = np.random.standard_normal((64, fan_in)) * np.sqrt(2 / fan_in)
-    fc1_w = np.random.randn(64, fan_in) / np.sqrt(fan_in / 2)
+    fc1_w = np.random.standard_normal((64, fan_in)) * np.sqrt(2 / fan_in)
+    #fc1_w = np.random.randn(64, fan_in) / np.sqrt(fan_in / 2)
     fc1_b = np.zeros((64, 1))
 
-    # fc2_w = np.random.standard_normal((10, 64)) * np.sqrt(2 / 64)
-    fc2_w = np.random.randn(10, 64) / np.sqrt(64 / 2)
+    fc2_w = np.random.standard_normal((10, 64)) * np.sqrt(2 / 64)
+    #fc2_w = np.random.randn(10, 64) / np.sqrt(64 / 2)
     fc2_b = np.zeros((10, 1))
 
     learning_rate = 1e-3
@@ -141,9 +141,11 @@ def train_network(train_images, train_labels,
             # FLATTEN + FCs
             # ********************
             x_flatten = flatten(x_maxpool)
+            x_flatten_shape = x_flatten.shape
 
             # First fc layer
             fc1 = np.matmul(fc1_w, x_flatten) + fc1_b
+            fc1_shape = fc1.shape
             fc2_input = ReLU(fc1)
 
             if use_dropout:
@@ -168,8 +170,8 @@ def train_network(train_images, train_labels,
             # ################################################################################
             # BACKWARD PASS
             # ################################################################################
-
-            delta_2 = (scores - one_hot_encoding_labels) / BATCH_SIZE  # TODO: check this
+            # https://stats.stackexchange.com/questions/183840/sum-or-average-of-gradients-in-mini-batch-gradient-decent/183990
+            delta_2 = (scores - one_hot_encoding_labels) #/ BATCH_SIZE  # TODO: check this
             d_fc2_w = delta_2 @ fc2_input.T
             d_fc2_b = np.sum(delta_2, axis=1, keepdims=True)
 

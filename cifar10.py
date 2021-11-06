@@ -94,7 +94,7 @@ class Cifar10:
         self.train_labels, self.test_labels = labels[:50000], labels[50000:]
 
         # Shuffle the train set
-        np.random.seed(31)
+        np.random.seed(12)
         permutation_indices = np.random.permutation(len(self.train_images))
         self.train_images = self.train_images[permutation_indices]
         self.train_labels = self.train_labels[permutation_indices]
@@ -109,11 +109,11 @@ class Cifar10:
         self.test_images = (self.test_images - 0.5) / 0.5
 
         # Create the validation set
-        self.validation_images = self.train_images[49000:]
-        self.validation_labels = self.train_labels[49000:]
+        self.validation_images = self.train_images[45000:]
+        self.validation_labels = self.train_labels[45000:]
 
-        self.train_images = self.train_images[:49000]
-        self.train_labels = self.train_labels[:49000]
+        self.train_images = self.train_images[:45000]
+        self.train_labels = self.train_labels[:45000]
 
     @staticmethod
     def __download_progress(block_num, block_size, total_size):
