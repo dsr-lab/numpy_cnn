@@ -83,8 +83,8 @@ class Cifar10:
                 file_images = dictionary.get(b'data')
                 file_labels = dictionary.get(b'labels')
 
-                file_images = file_images / 255
-                file_images = (file_images - 0.5) / 0.5
+                #file_images = file_images / 255
+                #file_images = (file_images - 0.5) / 0.5
                 file_images = file_images.reshape(10000, 3, 32, 32)
 
                 images[idx * 10000:10000 * (idx + 1)] = file_images
@@ -98,24 +98,22 @@ class Cifar10:
         permutation_indices = np.random.permutation(len(self.train_images))
         self.train_images = self.train_images[permutation_indices]
         self.train_labels = self.train_labels[permutation_indices]
-        a = self.train_labels.shape
-        print()
 
         # Normalize with mean and std
-        # mean_train = self.train_images.mean(axis=(0, 2, 3), keepdims=True)
-        # std_train = self.train_images.std(axis=(0, 2, 3), keepdims=True)
-        # self.train_images = (self.train_images - mean_train) / std_train
+        mean_train = self.train_images.mean(axis=(0, 2, 3), keepdims=True)
+        std_train = self.train_images.std(axis=(0, 2, 3), keepdims=True)
+        self.train_images = (self.train_images - mean_train) / std_train
 
-        # mean_test = self.test_images.mean(axis=(0, 2, 3), keepdims=True)
-        # std_test = self.test_images.std(axis=(0, 2, 3), keepdims=True)
-        #self.test_images = (self.test_images - 0.5) / 0.5
+        mean_test = self.test_images.mean(axis=(0, 2, 3), keepdims=True)
+        std_test = self.test_images.std(axis=(0, 2, 3), keepdims=True)
+        self.test_images = (self.test_images - 0.5) / 0.5
 
         # Create the validation set
-        self.validation_images = self.train_images[45000:]
-        self.validation_labels = self.train_labels[45000:]
+        self.validation_images = self.train_images[49000:]
+        self.validation_labels = self.train_labels[49000:]
 
-        self.train_images = self.train_images[:45000]
-        self.train_labels = self.train_labels[:45000]
+        self.train_images = self.train_images[:49000]
+        self.train_labels = self.train_labels[:49000]
 
     @staticmethod
     def __download_progress(block_num, block_size, total_size):

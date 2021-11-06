@@ -190,7 +190,11 @@ def fast_maxpool_backprop(gradient_values, conv_shape, padding, stride, max_pool
     #      [[21, 22], [23, 24]]]
     # ]
     # bp = np.asarray(bp, dtype=np.float64)
-    bp_flattened = gradient_values.reshape(n_channels, -1)
+
+    bp_flattened = gradient_values.reshape(gradient_values.shape[0] * gradient_values.shape[1],
+                                   gradient_values.shape[2] * gradient_values.shape[3])
+    bp_flattened = np.array(np.vsplit(bp_flattened, conv_shape[0]))
+    bp_flattened = np.concatenate(bp_flattened, axis=-1)
 
     # the convolution shape expected is then (1,3,4,4)
     # delta_conv = np.zeros((2, 3, 4, 4))  # shape of the gradient
@@ -200,7 +204,7 @@ def fast_maxpool_backprop(gradient_values, conv_shape, padding, stride, max_pool
 
     # Those are indexes channel wise    n_channels = 3
     # pos_result = [[2, 3, 0, 1, 2, 3, 0, 1], [2, 0, 2, 2, 2, 0, 2, 2], [2, 0, 0, 1, 2, 0, 0, 3]]
-    # pos_result = np.asarray(pos_result)
+    # pos_result = np.asarray(pos_result)delta_conv_col
     # pos_result_shape = pos_result.shape
 
     row_coefficient = delta_conv_col.shape[0] // n_channels
@@ -215,13 +219,18 @@ def fast_maxpool_backprop(gradient_values, conv_shape, padding, stride, max_pool
 
     np.add.at(delta_conv_col, (pos_result, col_indices), bp_flattened)
 
-    # delta_conv = delta_conv_col.reshape(2, 3, 4, 4)
-    # delta_conv = delta_conv_col.reshape(conv_shape)
-
+    #a = np.array(np.hsplit(delta_conv_col, conv_shape[0]))
+    #b = a.reshape(2,2,4,4)
+    #delta_conv_col = delta_conv_col
     delta_conv = col2im(delta_conv_col, conv_shape, max_pool_size, max_pool_size, stride, padding)
-    # n_images = conv_shape[0]
-    # delta_conv = delta_conv_col.reshape(n_images, -1)
-    # delta_conv = np.array(np.hsplit(delta_conv, n_channels))
-    # delta_conv = delta_conv.reshape(conv_shape)
+    '''
+    delta_conv1 = delta_conv.reshape(2, -1)
+    delta_conv2 = np.array(np.hsplit(delta_conv1, conv_shape[1]))
+    #delta_conv = delta_conv.reshape(2, 2, 4, 4)
+
+    delta_conv2 = delta_conv2.reshape(2,2,4,4)
+    '''
+
+
 
     return delta_conv

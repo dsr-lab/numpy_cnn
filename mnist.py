@@ -35,9 +35,13 @@ class Mnist:
     def process_dataset(self):
         (trainX, trainy), (testX, testy) = mnist.load_data()
         self.train_images = np.expand_dims(trainX, axis=1)
+        self.train_images = self.train_images / 255
+        self.train_images = (self.train_images - 0.5) / 0.5
         self.train_labels = trainy
 
         self.test_images = np.expand_dims(testX, axis=1)
+        self.test_images = self.test_images / 255
+        self.test_images = (self.test_images - 0.5) / 0.5
         self.test_labels = testy
 
         # Shuffle the train set
