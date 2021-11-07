@@ -20,27 +20,8 @@ CONV_PADDING = 0
 
 OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
 
-TRAIN_SMALL_DATASET = True
+TRAIN_SMALL_DATASET = False
 USE_CIFAR_10 = True
-
-
-def verify_gradients(self, inputs, verbose=True):
-    cost, caches = self.forward_propagate(inputs, self._weights, self._params, self._bn_params)
-    gradients = self.backward_propagate(inputs, caches)
-
-    if verbose:
-        print("Verifying gradients verbose:\n")
-
-    for key in self._weights:
-        approx = self.check_gradients(inputs, self._weights, key, self._weights[key].ndim)
-        calc = gradients[key].flat[0]
-
-        if verbose:
-            print("Approx " + key + ":    " + str(approx))
-            print("Calulated " + key + ": " + str(calc))
-            print("Check Passed: " + str(np.isclose(approx, calc)))
-            print("\n")
-
 
 def train_network(train_images, train_labels,
                   valid_images, valid_labels,
@@ -67,12 +48,12 @@ def train_network(train_images, train_labels,
     # kernel2 = np.random.randn(16, 8, 3, 3) / np.sqrt(7200 / 2)
 
     # fc1_w = np.random.standard_normal((64, fan_in)) * np.sqrt(2 / fan_in)
-    fc1_w = np.random.randn(64, fan_in) / np.sqrt(fan_in / 2)
-    fc1_b = np.zeros((64, 1))
+    fc1_w = np.random.randn(fan_in, 64) / np.sqrt(fan_in / 2)
+    fc1_b = np.zeros((1, 64))
 
     # fc2_w = np.random.standard_normal((10, 64)) * np.sqrt(2 / 64)
-    fc2_w = np.random.randn(10, 64) / np.sqrt(64 / 2)
-    fc2_b = np.zeros((10, 1))
+    fc2_w = np.random.randn(64, 10) / np.sqrt(64 / 2)
+    fc2_b = np.zeros((1, 10))
 
     learning_rate = 1e-3
 
@@ -112,7 +93,7 @@ def train_network(train_images, train_labels,
             for i in range(input_labels.shape[0]):
                 position = input_labels[i]
                 one_hot_encoding_labels[i, position] = 1
-            one_hot_encoding_labels = one_hot_encoding_labels.T
+            # one_hot_encoding_labels = one_hot_encoding_labels.T
 
             # ################################################################################
             # FORWARD PASS
@@ -164,14 +145,14 @@ def train_network(train_images, train_labels,
             fc1_input = flatten(x_maxpool)
 
             # First fc layer
-            fc1 = np.matmul(fc1_w, fc1_input) + fc1_b
+            fc1 = np.matmul(fc1_input, fc1_w) + fc1_b
             fc2_input = ReLU(fc1)
 
             if use_dropout:
                 fc2_input = dense_dropout(fc2_input, DENSE_DROPOUT_PROBABILITY)
 
             # Second fc layer
-            fc2 = np.matmul(fc2_w, fc2_input) + fc2_b
+            fc2 = np.matmul(fc2_input, fc2_w) + fc2_b
 
             # Apply the softmax for computing the scores
             scores = softmax(fc2)
@@ -191,16 +172,16 @@ def train_network(train_images, train_labels,
             # ################################################################################
             # https://stats.stackexchange.com/questions/183840/sum-or-average-of-gradients-in-mini-batch-gradient-decent/183990
             delta_2 = (scores - one_hot_encoding_labels) / BATCH_SIZE  # TODO: check this
-            d_fc2_w = delta_2 @ fc2_input.T
-            d_fc2_b = np.sum(delta_2, axis=1, keepdims=True)
+            d_fc2_w = fc2_input.T @ delta_2
+            d_fc2_b = np.sum(delta_2, axis=0, keepdims=True)
 
-            delta_1 = np.multiply(fc2_w.T @ delta_2, dReLU(fc1))
-            d_fc1_w = delta_1 @ fc1_input.T
-            d_fc1_b = np.sum(delta_1, axis=1, keepdims=True)
+            delta_1 = np.multiply((fc2_w @ delta_2.T).T, dReLU(fc1))
+            d_fc1_w = fc1_input.T @ delta_1
+            d_fc1_b = np.sum(delta_1, axis=0, keepdims=True)
 
             # gradient WRT x0
             # delta_0 = np.multiply(fc1_w.T @ delta_1, 1.0)
-            delta_0 = fc1_w.T @ delta_1
+            delta_0 = (fc1_w @ delta_1.T).T
 
             # unflatten operation
             delta_maxpool = delta_0.reshape(x_maxpool.shape)
@@ -321,7 +302,7 @@ def train_network(train_images, train_labels,
             for i in range(input_labels.shape[0]):
                 position = input_labels[i]
                 one_hot_encoding_labels[i, position] = 1
-            one_hot_encoding_labels = one_hot_encoding_labels.T
+            # one_hot_encoding_labels = one_hot_encoding_labels.T
 
             # ################################################################################
             # FORWARD PASS
@@ -335,6 +316,12 @@ def train_network(train_images, train_labels,
             else:
                 x_conv = convolve_2d(input_data, kernel, padding=CONV_PADDING)
 
+            a = x_conv.shape
+            # Save the shape for later use (used during the backpropagation)
+
+            if use_dropout:
+                x_conv = cnn_dropout(x_conv, CONV_DROPOUT_PROBABILITY)
+
             conv2_input = ReLU(x_conv)
 
             # ********************
@@ -344,6 +331,12 @@ def train_network(train_images, train_labels,
                 x_conv2 = fast_convolve_2d(conv2_input, kernel2, padding=CONV_PADDING)
             else:
                 x_conv2 = convolve_2d(conv2_input, kernel2, padding=CONV_PADDING)
+
+            if use_dropout:
+                x_conv2 = cnn_dropout(x_conv2, CONV_DROPOUT_PROBABILITY)
+
+            # Save the shape for later use (used during the backpropagation)
+            conv_out_shape2 = x_conv2.shape
 
             maxpool_input = ReLU(x_conv2)
 
@@ -355,18 +348,23 @@ def train_network(train_images, train_labels,
             else:
                 x_maxpool, pos_maxpool_pos = max_pool(maxpool_input)
 
-            x_flatten = flatten(x_maxpool)
+            # ********************
+            # FLATTEN + FCs
+            # ********************
+            fc1_input = flatten(x_maxpool)
 
             # First fc layer
-            fc1 = np.matmul(fc1_w, x_flatten) + fc1_b
+            fc1 = np.matmul(fc1_input, fc1_w) + fc1_b
             fc2_input = ReLU(fc1)
 
-            # Second fc layer
-            fc2 = np.matmul(fc2_w, fc2_input) + fc2_b
+            if use_dropout:
+                fc2_input = dense_dropout(fc2_input, DENSE_DROPOUT_PROBABILITY)
 
-            # Finally apply the softmax
+            # Second fc layer
+            fc2 = np.matmul(fc2_input, fc2_w) + fc2_b
+
+            # Apply the softmax for computing the scores
             scores = softmax(fc2)
-            # scores = fc2
 
             # Compute the cross entropy loss
             ce = cross_entropy(scores, one_hot_encoding_labels, input_labels) * input_data.shape[0]

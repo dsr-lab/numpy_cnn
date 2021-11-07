@@ -12,4 +12,4 @@ def flatten(x):
 
     a = x.reshape(x.shape[0], x.shape[1] * x.shape[2] * x.shape[3])
     b = a.T
-    return b
+    return a
