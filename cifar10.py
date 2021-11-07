@@ -93,11 +93,14 @@ class Cifar10:
         self.train_images, self.test_images = images[:50000], images[50000:]
         self.train_labels, self.test_labels = labels[:50000], labels[50000:]
 
+        #unique, counts = np.unique(self.train_labels, return_counts=True)
+        #a = dict(zip(unique, counts))
+
         # Shuffle the train set
-        np.random.seed(12)
-        permutation_indices = np.random.permutation(len(self.train_images))
-        self.train_images = self.train_images[permutation_indices]
-        self.train_labels = self.train_labels[permutation_indices]
+        #np.random.seed(12)
+        #permutation_indices = np.random.permutation(len(self.train_images))
+        #self.train_images = self.train_images[permutation_indices]
+        #self.train_labels = self.train_labels[permutation_indices]
 
         # Normalize with mean and std
         mean_train = self.train_images.mean(axis=(0, 2, 3), keepdims=True)

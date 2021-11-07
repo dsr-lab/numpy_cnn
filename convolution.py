@@ -235,7 +235,9 @@ def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3
         #stdv = 1. / np.sqrt(n)
         #return np.random.uniform(low=-stdv, high=stdv, size=(output_channels, input_channels, kernel_h, kernel_w))
 
-        return np.random.standard_normal((output_channels, input_channels, kernel_h, kernel_w)) * np.sqrt(2 / fan_in)
+        weights = np.random.randn(output_channels, input_channels, kernel_h, kernel_w) / np.sqrt(fan_in / 2)
+        return weights
+        # return np.random.standard_normal((output_channels, input_channels, kernel_h, kernel_w)) * np.sqrt(2 / fan_in)
 
 
     else:

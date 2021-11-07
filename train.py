@@ -1,3 +1,5 @@
+import os
+
 from cifar10 import Cifar10
 from dropout import *
 from flatten import flatten
@@ -5,12 +7,13 @@ from mnist import Mnist
 from relu import ReLU, dReLU
 from sanity_checks import *
 from softmax import *
+from to_delete import gradientCheck
 from utils import *
 from cross_entropy import *
 from timeit import default_timer as timer
 
 BATCH_SIZE = 128
-EPOCHS = 50
+EPOCHS = 100
 CONV_DROPOUT_PROBABILITY = 0.9
 DENSE_DROPOUT_PROBABILITY = 0.8
 CONV_PADDING = 0
@@ -19,6 +22,24 @@ OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
 
 TRAIN_SMALL_DATASET = True
 USE_CIFAR_10 = True
+
+
+def verify_gradients(self, inputs, verbose=True):
+    cost, caches = self.forward_propagate(inputs, self._weights, self._params, self._bn_params)
+    gradients = self.backward_propagate(inputs, caches)
+
+    if verbose:
+        print("Verifying gradients verbose:\n")
+
+    for key in self._weights:
+        approx = self.check_gradients(inputs, self._weights, key, self._weights[key].ndim)
+        calc = gradients[key].flat[0]
+
+        if verbose:
+            print("Approx " + key + ":    " + str(approx))
+            print("Calulated " + key + ": " + str(calc))
+            print("Check Passed: " + str(np.isclose(approx, calc)))
+            print("\n")
 
 
 def train_network(train_images, train_labels,
@@ -41,16 +62,16 @@ def train_network(train_images, train_labels,
 
     # Kernel for the convolution layer
     kernel = generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3)
-    #kernel = np.random.randn(8, 3, 3, 3) / np.sqrt(8192 / 2)
+    # kernel = np.random.randn(8, 3, 3, 3) / np.sqrt(8192 / 2)
     kernel2 = generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3)
-    #kernel2 = np.random.randn(16, 8, 3, 3) / np.sqrt(7200 / 2)
+    # kernel2 = np.random.randn(16, 8, 3, 3) / np.sqrt(7200 / 2)
 
-    fc1_w = np.random.standard_normal((64, fan_in)) * np.sqrt(2 / fan_in)
-    #fc1_w = np.random.randn(64, fan_in) / np.sqrt(fan_in / 2)
+    # fc1_w = np.random.standard_normal((64, fan_in)) * np.sqrt(2 / fan_in)
+    fc1_w = np.random.randn(64, fan_in) / np.sqrt(fan_in / 2)
     fc1_b = np.zeros((64, 1))
 
-    fc2_w = np.random.standard_normal((10, 64)) * np.sqrt(2 / 64)
-    #fc2_w = np.random.randn(10, 64) / np.sqrt(64 / 2)
+    # fc2_w = np.random.standard_normal((10, 64)) * np.sqrt(2 / 64)
+    fc2_w = np.random.randn(10, 64) / np.sqrt(64 / 2)
     fc2_b = np.zeros((10, 1))
 
     learning_rate = 1e-3
@@ -140,12 +161,10 @@ def train_network(train_images, train_labels,
             # ********************
             # FLATTEN + FCs
             # ********************
-            x_flatten = flatten(x_maxpool)
-            x_flatten_shape = x_flatten.shape
+            fc1_input = flatten(x_maxpool)
 
             # First fc layer
-            fc1 = np.matmul(fc1_w, x_flatten) + fc1_b
-            fc1_shape = fc1.shape
+            fc1 = np.matmul(fc1_w, fc1_input) + fc1_b
             fc2_input = ReLU(fc1)
 
             if use_dropout:
@@ -171,17 +190,17 @@ def train_network(train_images, train_labels,
             # BACKWARD PASS
             # ################################################################################
             # https://stats.stackexchange.com/questions/183840/sum-or-average-of-gradients-in-mini-batch-gradient-decent/183990
-            delta_2 = (scores - one_hot_encoding_labels) #/ BATCH_SIZE  # TODO: check this
+            delta_2 = (scores - one_hot_encoding_labels) / BATCH_SIZE  # TODO: check this
             d_fc2_w = delta_2 @ fc2_input.T
             d_fc2_b = np.sum(delta_2, axis=1, keepdims=True)
 
             delta_1 = np.multiply(fc2_w.T @ delta_2, dReLU(fc1))
-            d_fc1_w = delta_1 @ x_flatten.T
+            d_fc1_w = delta_1 @ fc1_input.T
             d_fc1_b = np.sum(delta_1, axis=1, keepdims=True)
-            b = delta_1.shape
 
             # gradient WRT x0
-            delta_0 = np.multiply(fc1_w.T @ delta_1, 1.0)
+            # delta_0 = np.multiply(fc1_w.T @ delta_1, 1.0)
+            delta_0 = fc1_w.T @ delta_1
 
             # unflatten operation
             delta_maxpool = delta_0.reshape(x_maxpool.shape)
@@ -291,6 +310,7 @@ def train_network(train_images, train_labels,
         valid_batch_loss = 0
         valid_batch_acc = 0
         valid_samples = 0
+
         for idx, input_data in enumerate(val_images_batches):
             valid_samples += input_data.shape[0]
 
@@ -369,6 +389,15 @@ def train_network(train_images, train_labels,
         print("Elapsed time (s): {}".format(end - start))
         print()
 
+        path = os.path.join(os.path.dirname(__file__), f'weights/epoch_{e}')
+        os.makedirs(path, exist_ok=True)
+        np.save(f'{path}/fc1_w.npy', fc1_w)
+        np.save(f'{path}/fc1_b.npy', fc1_b)
+        np.save(f'{path}/fc2_w.npy', fc2_w)
+        np.save(f'{path}/fc2_b.npy', fc2_b)
+        np.save(f'{path}/kernel.npy', kernel)
+        np.save(f'{path}/kernel2.npy', kernel2)
+
 
 def main():
     if USE_CIFAR_10:
@@ -397,6 +426,9 @@ def main():
 
     # n_images = 5
     # X = dataset.train_images[:n_images]
+    # Y = dataset.train_labels[:n_images]
+    # gradientCheck(X, Y)
+
     # #X = np.random.randint(-100, 100, size=(2, 3, 15, 30))
     # kernel = generate_kernel(input_channels=3, output_channels=8, kernel_h=3, kernel_w=3)
     # kernel = np.random.randint(100, size=(8, 3, 3, 3))
