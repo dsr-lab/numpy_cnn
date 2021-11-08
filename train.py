@@ -336,12 +336,14 @@ def train_model(train_images, train_labels,
 
 def test_model(weights_path, test_images, test_labels):
 
+    print(f'Testing started...')
+
     # Split in batches
     test_images_batches = np.split(test_images, np.arange(BATCH_SIZE, len(test_images), BATCH_SIZE))
     test_images_labels = np.split(test_labels, np.arange(BATCH_SIZE, len(test_labels), BATCH_SIZE))
 
     # Load weights from file system
-    weights = load_weights(weights_path)
+    weights, _ = load_weights(weights_path)
 
     # Metrics
     test_batch_loss = 0
@@ -381,16 +383,14 @@ def main():
     # ######################################################################
     # TRAIN + VALIDATION
     # ######################################################################
-    # train_model(train_images, train_labels,
-    #             validation_images, validation_labels, EPOCHS)
+    train_model(train_images, train_labels,
+                 validation_images, validation_labels, EPOCHS)
 
     # ######################################################################
     # TRAIN
     # ######################################################################
     # Load the number of epochs obtained after running the model on train
     # and validation set
-    #np.save(f'{VALIDATION_WEIGHTS_PATH}/epoch.npy', 10)
-
     _, epochs = load_weights(VALIDATION_WEIGHTS_PATH)
 
     print(f'Best epochs loaded from file system: {epochs[0]}')
