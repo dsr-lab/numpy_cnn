@@ -7,13 +7,12 @@ from mnist import Mnist
 from relu import ReLU, dReLU
 from sanity_checks import *
 from softmax import *
-from to_delete import gradientCheck
 from utils import *
 from cross_entropy import *
 from timeit import default_timer as timer
 
 BATCH_SIZE = 128
-EPOCHS = 100
+EPOCHS = 40
 CONV_DROPOUT_PROBABILITY = 0.9
 DENSE_DROPOUT_PROBABILITY = 0.8
 CONV_PADDING = 0
@@ -23,18 +22,22 @@ OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
 TRAIN_SMALL_DATASET = False
 USE_CIFAR_10 = True
 
+
 def train_network(train_images, train_labels,
                   valid_images, valid_labels,
-                  test_images, test_labels,
                   use_fast_conv,
                   use_dropout):
-    # TODO: optimize this without creating a copy of the dataset
+
+    # Divide the datasets into batches
+    # Train
     train_images_batches = np.split(train_images, np.arange(BATCH_SIZE, len(train_images), BATCH_SIZE))
     train_images_labels = np.split(train_labels, np.arange(BATCH_SIZE, len(train_labels), BATCH_SIZE))
 
+    # Validation
     val_images_batches = np.split(valid_images, np.arange(BATCH_SIZE, len(valid_images), BATCH_SIZE))
     val_images_labels = np.split(valid_labels, np.arange(BATCH_SIZE, len(valid_labels), BATCH_SIZE))
 
+    # Set variables according to the dataset
     input_channels = 1
     fan_in = 2304
     if USE_CIFAR_10:
@@ -43,15 +46,13 @@ def train_network(train_images, train_labels,
 
     # Kernel for the convolution layer
     kernel = generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3)
-    # kernel = np.random.randn(8, 3, 3, 3) / np.sqrt(8192 / 2)
     kernel2 = generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3)
-    # kernel2 = np.random.randn(16, 8, 3, 3) / np.sqrt(7200 / 2)
 
-    # fc1_w = np.random.standard_normal((64, fan_in)) * np.sqrt(2 / fan_in)
+    # fc1_w = np.random.standard_normal((fan_in, 64)) * np.sqrt(2 / fan_in)
     fc1_w = np.random.randn(fan_in, 64) / np.sqrt(fan_in / 2)
     fc1_b = np.zeros((1, 64))
 
-    # fc2_w = np.random.standard_normal((10, 64)) * np.sqrt(2 / 64)
+    # fc2_w = np.random.standard_normal((64, 10)) * np.sqrt(2 / 64)
     fc2_w = np.random.randn(64, 10) / np.sqrt(64 / 2)
     fc2_b = np.zeros((1, 10))
 
@@ -93,7 +94,6 @@ def train_network(train_images, train_labels,
             for i in range(input_labels.shape[0]):
                 position = input_labels[i]
                 one_hot_encoding_labels[i, position] = 1
-            # one_hot_encoding_labels = one_hot_encoding_labels.T
 
             # ################################################################################
             # FORWARD PASS
@@ -106,9 +106,6 @@ def train_network(train_images, train_labels,
                 x_conv = fast_convolve_2d(input_data, kernel, padding=CONV_PADDING)
             else:
                 x_conv = convolve_2d(input_data, kernel, padding=CONV_PADDING)
-
-            a = x_conv.shape
-            # Save the shape for later use (used during the backpropagation)
 
             if use_dropout:
                 x_conv = cnn_dropout(x_conv, CONV_DROPOUT_PROBABILITY)
@@ -158,7 +155,7 @@ def train_network(train_images, train_labels,
             scores = softmax(fc2)
 
             # Compute the cross entropy loss
-            ce = cross_entropy(scores, one_hot_encoding_labels, input_labels) * input_data.shape[0]
+            ce = cross_entropy(scores, one_hot_encoding_labels) * input_data.shape[0]
 
             # Compute prediction and accuracy
             acc = accuracy(scores, input_labels) * input_data.shape[0]
@@ -211,16 +208,6 @@ def train_network(train_images, train_labels,
                 conv1_delta, _ = fast_convolution_backprop(input_data, kernel, dX2, padding=CONV_PADDING)
             else:
                 conv1_delta, _ = convolution_backprop(input_data, kernel, dX2, padding=CONV_PADDING)
-
-            # Average the gradients
-            # a = d_fc1_w.shape
-            # d_fc1_w = np.average(d_fc1_w, axis=0)
-            # b = d_fc1_w.shape
-            # d_fc2_w = np.average(d_fc2_w, axis=0)
-            # d_fc1_b = np.average(d_fc1_b, axis=0)
-            # d_fc2_b = np.average(d_fc2_b, axis=0)
-            # conv1_delta = np.average(conv1_delta, axis=0)
-            # conv2_delta = np.average(conv2_delta, axis=0)
 
             if OPTIMIZER == 'ADAM':
                 momentum_w1 = beta1 * momentum_w1 + ((1 - beta1) * d_fc1_w)
@@ -367,7 +354,7 @@ def train_network(train_images, train_labels,
             scores = softmax(fc2)
 
             # Compute the cross entropy loss
-            ce = cross_entropy(scores, one_hot_encoding_labels, input_labels) * input_data.shape[0]
+            ce = cross_entropy(scores, one_hot_encoding_labels) * input_data.shape[0]
 
             # Compute prediction and accuracy
             acc = accuracy(scores, input_labels) * input_data.shape[0]
@@ -404,62 +391,17 @@ def main():
         dataset = Mnist()
 
     train_images, train_labels, \
-    validation_images, validation_labels, \
-    test_images, test_labels = dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
+        validation_images, validation_labels, \
+        test_images, test_labels = dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
 
-    # a = np.array([0, 3, 0, 1, 0, 1, 2, 1, 0, 0, 0, 0, 1, 3, 4])
-    unique, counts = np.unique(train_labels, return_counts=True)
-    a = dict(zip(unique, counts))
-    unique, counts = np.unique(validation_labels, return_counts=True)
-    b = dict(zip(unique, counts))
-    unique, counts = np.unique(test_labels, return_counts=True)
-    c = dict(zip(unique, counts))
-    #
     train_network(train_images, train_labels,
                   validation_images, validation_labels,
-                  test_images, test_labels,
-                  True, False)
+                  use_fast_conv=True, use_dropout=False)
 
-    # test_naive_fast_convolutions()
-
-    # n_images = 5
-    # X = dataset.train_images[:n_images]
-    # Y = dataset.train_labels[:n_images]
-    # gradientCheck(X, Y)
-
-    # #X = np.random.randint(-100, 100, size=(2, 3, 15, 30))
-    # kernel = generate_kernel(input_channels=3, output_channels=8, kernel_h=3, kernel_w=3)
-    # kernel = np.random.randint(100, size=(8, 3, 3, 3))
-    # #
-    # # relu_input = np.random.rand(n_images, 8, 30, 30)
-    # gradient_values = np.random.rand(n_images, 8, 30, 30)
-    # gradient_values = np.random.randint(100, size=(2, 2, 3, 3))
-    # a = gradient_values.shape
-    #
-    # conv_data = [
-    #     [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
-    #      [[12, 18, 0, 2], [33, 2, 55, 60], [5, 2, 4, 8], [4, 32, 101, 1]],
-    #      [[19, 1, 27, 2], [51, 1, 0, 9], [82, 2, 4, 9], [4, 3, 1, 11]]],
-    #     [[[3, 1, 7, 2], [5, 1, 0, 9], [8, 2, 4, 9], [4, 3, 1, 1]],
-    #      [[12, 18, 0, 2], [33, 2, 55, 60], [5, 2, 4, 8], [4, 32, 101, 1]],
-    #      [[19, 1, 27, 2], [51, 1, 0, 9], [82, 2, 4, 9], [4, 3, 1, 11]]]
-    # ]
-    # conv_data = [
-    #     [
-    #         [[155, 2, 3, 4], [5, 6, 7, 8], [9, 10, 31, 12], [13, 14, 44, 16]],
-    #         [[22, 799, 19, 20], [21, 27, 23, 24], [25, 26, 27, 28], [29, 30, 31, 57]]
-    #      ],
-    #     [
-    #         [[1, 2, 32, 49], [5, 6, 7, 48], [9, 10, 11, 12], [13, 14, 15, 22]],
-    #         [[172, 18, 19, 20], [21, 33, 23, 24], [55, 26, 27, 28], [29, 44, 31, 32]]
-    #     ]
-    # ]
-    # conv_data = np.asarray(conv_data)
-    # #
-    # # convolution_method_comparisons(X, kernel, gradient_values)
-    # test_naive_fast_max_pool(X)
 
     print()
+
+
 
 
 if __name__ == '__main__':

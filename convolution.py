@@ -224,19 +224,12 @@ def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride
 def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3, random=True):
 
     if random:
-        # return np.random.rand(output_channels, input_channels, kernel_h, kernel_w) * np.sqrt(1./3.)
-        n = output_channels * kernel_h * kernel_w
-        #for k in (kernel_h, kernel_w):
-        #    n *= k
-
         receptive_field_size = kernel_h * kernel_w
         fan_in = input_channels * receptive_field_size
 
-        #stdv = 1. / np.sqrt(n)
-        #return np.random.uniform(low=-stdv, high=stdv, size=(output_channels, input_channels, kernel_h, kernel_w))
-
-        weights = np.random.randn(output_channels, input_channels, kernel_h, kernel_w) / np.sqrt(fan_in / 2)
-        return weights
+        # XAVIER
+        return np.random.randn(output_channels, input_channels, kernel_h, kernel_w) / np.sqrt(fan_in / 2)
+        # HE
         # return np.random.standard_normal((output_channels, input_channels, kernel_h, kernel_w)) * np.sqrt(2 / fan_in)
 
 
