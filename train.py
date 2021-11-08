@@ -204,6 +204,8 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
 def train_model(train_images, train_labels,
                 valid_images, valid_labels, epochs):
 
+    print(f'Training started...')
+
     # Flag indicating if the validation is required
     validation_required = valid_images is not None
 
@@ -320,7 +322,7 @@ def train_model(train_images, train_labels,
             if (valid_batch_acc / valid_samples) > best_valid_acc:
                 best_valid_acc = valid_batch_acc / valid_samples
                 print(f'Better accuracy found: {valid_batch_acc / valid_samples}. Saving weights...')
-                save_weights(weights, e, VALIDATION_WEIGHTS_PATH)
+                save_weights(weights, e+1, VALIDATION_WEIGHTS_PATH)
 
         print()
 
@@ -365,6 +367,7 @@ def test_model(weights_path, test_images, test_labels):
 
 
 def main():
+
     if USE_CIFAR_10:
         dataset = Cifar10()
     else:
@@ -386,11 +389,15 @@ def main():
     # ######################################################################
     # Load the number of epochs obtained after running the model on train
     # and validation set
-    epochs = np.load(f'{VALIDATION_WEIGHTS_PATH}/epoch.npy')
+    #np.save(f'{VALIDATION_WEIGHTS_PATH}/epoch.npy', 10)
+
+    _, epochs = load_weights(VALIDATION_WEIGHTS_PATH)
+
+    print(f'Best epochs loaded from file system: {epochs[0]}')
 
     train_model(np.concatenate((train_images, validation_images)),
                 np.concatenate((train_labels, validation_labels)),
-                None, None, epochs)
+                None, None, epochs[0])
 
     # ######################################################################
     # TEST

@@ -1,13 +1,5 @@
-import os
-import pickle
-import tarfile
-import urllib.request
-import numpy as np
-import gzip
 from keras.datasets import mnist
 from utils import *
-
-from utils import show_gray_scale_image
 
 
 class Mnist:

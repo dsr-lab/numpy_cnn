@@ -76,7 +76,8 @@ def load_weights(weights_path):
         'fc2_w': np.load(f'{weights_path}/fc2_w.npy'),
         'fc2_b': np.load(f'{weights_path}/fc2_b.npy'),
     }
-    return weights
+    epoch = np.load(f'{weights_path}/epoch.npy'),
+    return weights, epoch
 
 
 def init_optimizer_dictionary():
