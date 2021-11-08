@@ -48,6 +48,7 @@ def train_network(train_images, train_labels,
     kernel = generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3)
     kernel2 = generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3)
 
+    # https: // arxiv.org / pdf / 1502.01852.pdf
     # fc1_w = np.random.standard_normal((fan_in, 64)) * np.sqrt(2 / fan_in)
     fc1_w = np.random.randn(fan_in, 64) / np.sqrt(fan_in / 2)
     fc1_b = np.zeros((1, 64))
@@ -398,10 +399,7 @@ def main():
                   validation_images, validation_labels,
                   use_fast_conv=True, use_dropout=False)
 
-
     print()
-
-
 
 
 if __name__ == '__main__':
