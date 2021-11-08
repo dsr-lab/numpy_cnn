@@ -10,17 +10,7 @@ from softmax import *
 from utils import *
 from cross_entropy import *
 from timeit import default_timer as timer
-
-BATCH_SIZE = 128
-EPOCHS = 40
-CONV_DROPOUT_PROBABILITY = 0.9
-DENSE_DROPOUT_PROBABILITY = 0.8
-CONV_PADDING = 0
-
-OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
-
-TRAIN_SMALL_DATASET = False
-USE_CIFAR_10 = True
+from config import *
 
 
 def train_network(train_images, train_labels,
@@ -38,8 +28,10 @@ def train_network(train_images, train_labels,
     val_images_labels = np.split(valid_labels, np.arange(BATCH_SIZE, len(valid_labels), BATCH_SIZE))
 
     # Set variables according to the dataset
+    # MNIST
     input_channels = 1
     fan_in = 2304
+    # CIFAR10
     if USE_CIFAR_10:
         input_channels = 3
         fan_in = 3136
@@ -48,15 +40,15 @@ def train_network(train_images, train_labels,
     kernel = generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3)
     kernel2 = generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3)
 
+    # HE weight initialization
     # https: // arxiv.org / pdf / 1502.01852.pdf
-    # fc1_w = np.random.standard_normal((fan_in, 64)) * np.sqrt(2 / fan_in)
     fc1_w = np.random.randn(fan_in, 64) / np.sqrt(fan_in / 2)
     fc1_b = np.zeros((1, 64))
 
-    # fc2_w = np.random.standard_normal((64, 10)) * np.sqrt(2 / 64)
     fc2_w = np.random.randn(64, 10) / np.sqrt(64 / 2)
     fc2_b = np.zeros((1, 10))
 
+    # OPTIMIZER PARAMETERS
     learning_rate = 1e-3
 
     eps = 1e-8
@@ -169,7 +161,7 @@ def train_network(train_images, train_labels,
             # BACKWARD PASS
             # ################################################################################
             # https://stats.stackexchange.com/questions/183840/sum-or-average-of-gradients-in-mini-batch-gradient-decent/183990
-            delta_2 = (scores - one_hot_encoding_labels) / BATCH_SIZE  # TODO: check this
+            delta_2 = (scores - one_hot_encoding_labels) / BATCH_SIZE
             d_fc2_w = fc2_input.T @ delta_2
             d_fc2_b = np.sum(delta_2, axis=0, keepdims=True)
 
@@ -178,7 +170,6 @@ def train_network(train_images, train_labels,
             d_fc1_b = np.sum(delta_1, axis=0, keepdims=True)
 
             # gradient WRT x0
-            # delta_0 = np.multiply(fc1_w.T @ delta_1, 1.0)
             delta_0 = (fc1_w @ delta_1.T).T
 
             # unflatten operation
