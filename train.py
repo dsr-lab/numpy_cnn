@@ -14,10 +14,6 @@ from config import *
 def forward(input_data, input_labels, input_labels_one_hot_encoded, weights):
     n_samples = input_data.shape[0]
 
-    # ################################################################################
-    # FORWARD PASS
-    # ################################################################################
-
     # ********************
     # CONV 1 + RELU
     # ********************
@@ -64,6 +60,9 @@ def forward(input_data, input_labels, input_labels_one_hot_encoded, weights):
     if USE_DROPOUT:
         fc2_input = dense_dropout(fc2_input, DENSE_DROPOUT_PROBABILITY)
 
+    # ********************
+    # SCORE AND LOSS
+    # ********************
     # Second fc layer
     fc2_output = np.matmul(fc2_input, weights['fc2_w']) + weights['fc2_b']
 
@@ -92,6 +91,7 @@ def forward(input_data, input_labels, input_labels_one_hot_encoded, weights):
 
 
 def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, optimizer, n_weight_updates):
+
     # https://stats.stackexchange.com/questions/183840/sum-or-average-of-gradients-in-mini-batch-gradient-decent/183990
     delta_2 = (scores - input_labels_one_hot_encoded) / BATCH_SIZE
     d_fc2_w = cache['fc2_input'].T @ delta_2
@@ -131,6 +131,9 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
     else:
         conv1_delta_w, _ = convolution_backprop(input_data, weights['conv1_w'], conv2_delta_x, padding=CONV_PADDING)
 
+    # ********************
+    # WEIGHT UPDATES
+    # ********************
     if OPTIMIZER == 'ADAM':
         optimizer['momentum_w1'] = BETA1 * optimizer['momentum_w1'] + ((1 - BETA1) * d_fc1_w)
         optimizer['momentum_w2'] = BETA1 * optimizer['momentum_w2'] + ((1 - BETA1) * d_fc2_w)
@@ -200,8 +203,9 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
 
 def train_model(train_images, train_labels,
                 valid_images, valid_labels, epochs):
-    # Check if validation is required
-    compute_validation = valid_images is not None
+
+    # Flag indicating if the validation is required
+    validation_required = valid_images is not None
 
     # ##############################
     # CREATE BATCHES
@@ -212,7 +216,7 @@ def train_model(train_images, train_labels,
     train_images_labels = np.split(train_labels, np.arange(BATCH_SIZE, len(train_labels), BATCH_SIZE))
 
     # VALIDATION
-    if compute_validation:
+    if validation_required:
         val_images_batches = np.split(valid_images, np.arange(BATCH_SIZE, len(valid_images), BATCH_SIZE))
         val_images_labels = np.split(valid_labels, np.arange(BATCH_SIZE, len(valid_labels), BATCH_SIZE))
 
@@ -242,7 +246,10 @@ def train_model(train_images, train_labels,
     }
     optimizer = init_optimizer_dictionary()
 
+    # Number of times the weights are updated (needed for ADAM)
     n_weight_updates = 1
+
+    # Keep track of the current best valid accuracy
     best_valid_acc = 0
     for e in range(epochs):
 
@@ -276,7 +283,7 @@ def train_model(train_images, train_labels,
         # ##############################
         # VALIDATION STEP
         # ##############################
-        if compute_validation:
+        if validation_required:
             valid_batch_loss = 0
             valid_batch_acc = 0
             valid_samples = 0
@@ -302,40 +309,39 @@ def train_model(train_images, train_labels,
         print('TRAIN Accuracy: {:.3f}\tTRAIN Loss: {:.3f}'.
               format(train_batch_acc / train_samples, train_batch_loss / train_samples))
 
-        if compute_validation:
+        if validation_required:
             print('VALID Accuracy: {:.3f}\tVALID Loss: {:.3f}'.
                   format(valid_batch_acc / valid_samples, valid_batch_loss / valid_samples))
 
         print("Elapsed time (s): {}".format(end - start))
-        print()
 
         # Save model weights if validation score is higher
-        if compute_validation:
+        if validation_required:
             if (valid_batch_acc / valid_samples) > best_valid_acc:
+                best_valid_acc = valid_batch_acc / valid_samples
+                print(f'Better accuracy found: {valid_batch_acc / valid_samples}. Saving weights...')
                 save_weights(weights, e, VALIDATION_WEIGHTS_PATH)
 
+        print()
+
     # Save the last training weights
-    if not compute_validation:
-        save_weights(weights, e, TRAIN_WEIGHTS_PATH)
+    if not validation_required:
+        print(f'Training on full dataset completed. Saving weights...')
+        save_weights(weights, epochs, TRAIN_WEIGHTS_PATH)
+
+    print()
 
 
 def test_model(weights_path, test_images, test_labels):
+
+    # Split in batches
     test_images_batches = np.split(test_images, np.arange(BATCH_SIZE, len(test_images), BATCH_SIZE))
     test_images_labels = np.split(test_labels, np.arange(BATCH_SIZE, len(test_labels), BATCH_SIZE))
 
-    weights = {
-        # Convolutional layer weights initialization
-        'conv1_w': np.load(f'{weights_path}/conv1_w.npy'),
-        'conv2_w': np.load(f'{weights_path}/conv2_w.npy'),
+    # Load weights from file system
+    weights = load_weights(weights_path)
 
-        # Linear layer weights initialization
-        # NOTE: using HE weight initialization (https: // arxiv.org / pdf / 1502.01852.pdf)
-        'fc1_w': np.load(f'{weights_path}/fc1_w.npy'),
-        'fc1_b': np.load(f'{weights_path}/fc1_b.npy'),
-        'fc2_w': np.load(f'{weights_path}/fc2_w.npy'),
-        'fc2_b': np.load(f'{weights_path}/fc2_b.npy'),
-    }
-
+    # Metrics
     test_batch_loss = 0
     test_batch_acc = 0
     test_samples = 0
@@ -369,21 +375,26 @@ def main():
         test_images, test_labels = \
         dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
 
-    # Uncomment this for doing the training from scratch,
-    # In this case both the training and the validation sets will be used
-    # for hyper parameters tuning.
-    train_model(train_images, train_labels,
-                validation_images, validation_labels, EPOCHS)
+    # ######################################################################
+    # TRAIN + VALIDATION
+    # ######################################################################
+    # train_model(train_images, train_labels,
+    #             validation_images, validation_labels, EPOCHS)
 
+    # ######################################################################
+    # TRAIN
+    # ######################################################################
     # Load the number of epochs obtained after running the model on train
     # and validation set
     epochs = np.load(f'{VALIDATION_WEIGHTS_PATH}/epoch.npy')
 
-    # Uncomment this for performin a training of the full training set.
-    train_model(np.concatenate(train_images, validation_images),
-                np.concatenate(train_labels, validation_labels),
+    train_model(np.concatenate((train_images, validation_images)),
+                np.concatenate((train_labels, validation_labels)),
                 None, None, epochs)
 
+    # ######################################################################
+    # TEST
+    # ######################################################################
     test_model(TRAIN_WEIGHTS_PATH, test_images, test_labels)
 
     print()

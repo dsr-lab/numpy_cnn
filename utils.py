@@ -67,6 +67,18 @@ def save_weights(weights, epoch, path):
     np.save(f'{path}/epoch.npy', epoch)
 
 
+def load_weights(weights_path):
+    weights = {
+        'conv1_w': np.load(f'{weights_path}/conv1_w.npy'),
+        'conv2_w': np.load(f'{weights_path}/conv2_w.npy'),
+        'fc1_w': np.load(f'{weights_path}/fc1_w.npy'),
+        'fc1_b': np.load(f'{weights_path}/fc1_b.npy'),
+        'fc2_w': np.load(f'{weights_path}/fc2_w.npy'),
+        'fc2_b': np.load(f'{weights_path}/fc2_b.npy'),
+    }
+    return weights
+
+
 def init_optimizer_dictionary():
     optimizer = {
         'momentum_w1': 0,
