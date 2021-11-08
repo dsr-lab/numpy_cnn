@@ -98,9 +98,9 @@ class Cifar10:
 
         # Shuffle the train set
         #np.random.seed(12)
-        #permutation_indices = np.random.permutation(len(self.train_images))
-        #self.train_images = self.train_images[permutation_indices]
-        #self.train_labels = self.train_labels[permutation_indices]
+        # permutation_indices = np.random.permutation(len(self.train_images))
+        # self.train_images = self.train_images[permutation_indices]
+        # self.train_labels = self.train_labels[permutation_indices]
 
         # Normalize with mean and std
         mean_train = self.train_images.mean(axis=(0, 2, 3), keepdims=True)
@@ -109,7 +109,7 @@ class Cifar10:
 
         mean_test = self.test_images.mean(axis=(0, 2, 3), keepdims=True)
         std_test = self.test_images.std(axis=(0, 2, 3), keepdims=True)
-        self.test_images = (self.test_images - 0.5) / 0.5
+        self.test_images = (self.test_images - mean_test) / std_test
 
         # Create the validation set
         self.validation_images = self.train_images[45000:]

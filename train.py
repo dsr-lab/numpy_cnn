@@ -1,5 +1,3 @@
-import os
-
 from cifar10 import Cifar10
 from dropout import *
 from flatten import flatten
@@ -13,21 +11,215 @@ from timeit import default_timer as timer
 from config import *
 
 
-def train_network(train_images, train_labels,
-                  valid_images, valid_labels,
-                  use_fast_conv,
-                  use_dropout):
+def forward(input_data, input_labels, input_labels_one_hot_encoded, weights):
+    n_samples = input_data.shape[0]
 
-    # Divide the datasets into batches
-    # Train
+    # ################################################################################
+    # FORWARD PASS
+    # ################################################################################
+
+    # ********************
+    # CONV 1 + RELU
+    # ********************
+    if USE_FAST_CONV:
+        conv1_output = fast_convolve_2d(input_data, weights['conv1_w'], padding=CONV_PADDING)
+    else:
+        conv1_output = convolve_2d(input_data, weights['conv1_w'], padding=CONV_PADDING)
+
+    if USE_DROPOUT:
+        conv1_output = cnn_dropout(weights['conv1_output'], CONV_DROPOUT_PROBABILITY)
+
+    conv2_input = ReLU(conv1_output)
+
+    # ********************
+    # CONV 2 + RELU
+    # ********************
+    if USE_FAST_CONV:
+        conv2_output = fast_convolve_2d(conv2_input, weights['conv2_w'], padding=CONV_PADDING)
+    else:
+        conv2_output = convolve_2d(conv2_input, weights['conv2_w'], padding=CONV_PADDING)
+
+    if USE_DROPOUT:
+        conv2_output = cnn_dropout(conv2_output, CONV_DROPOUT_PROBABILITY)
+
+    maxpool_input = ReLU(conv2_output)
+
+    # ********************
+    # MAXPOOL
+    # ********************
+    if USE_FAST_CONV:
+        x_maxpool_output, pos_maxpool_pos = fast_max_pool(maxpool_input)
+    else:
+        x_maxpool_output, pos_maxpool_pos = max_pool(maxpool_input)
+
+    # ********************
+    # FLATTEN + FCs
+    # ********************
+    fc1_input = flatten(x_maxpool_output)
+
+    # First fc layer
+    fc1_output = np.matmul(fc1_input, weights['fc1_w']) + weights['fc1_b']
+    fc2_input = ReLU(fc1_output)
+
+    if USE_DROPOUT:
+        fc2_input = dense_dropout(fc2_input, DENSE_DROPOUT_PROBABILITY)
+
+    # Second fc layer
+    fc2_output = np.matmul(fc2_input, weights['fc2_w']) + weights['fc2_b']
+
+    # Apply the softmax for computing the scores
+    scores = softmax(fc2_output)
+
+    # Compute the cross entropy loss
+    loss = cross_entropy(scores, input_labels_one_hot_encoded) * n_samples
+
+    # Compute prediction and accuracy
+    acc = accuracy(scores, input_labels) * n_samples
+
+    # Values required during backpropagation
+    cache = {
+        'fc2_input': fc2_input,
+        'fc1_input': fc1_input,
+        'fc1_output': fc1_output,
+        'x_maxpool_output': x_maxpool_output,
+        'pos_maxpool_pos': pos_maxpool_pos,
+        'conv2_output': conv2_output,
+        'conv2_input': conv2_input,
+        'conv1_output': conv1_output
+    }
+
+    return scores, cache, loss, acc
+
+
+def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, optimizer, n_weight_updates):
+    # https://stats.stackexchange.com/questions/183840/sum-or-average-of-gradients-in-mini-batch-gradient-decent/183990
+    delta_2 = (scores - input_labels_one_hot_encoded) / BATCH_SIZE
+    d_fc2_w = cache['fc2_input'].T @ delta_2
+    d_fc2_b = np.sum(delta_2, axis=0, keepdims=True)
+
+    delta_1 = np.multiply((weights['fc2_w'] @ delta_2.T).T, dReLU(cache['fc1_output']))
+    d_fc1_w = cache['fc1_input'].T @ delta_1
+    d_fc1_b = np.sum(delta_1, axis=0, keepdims=True)
+
+    # gradient WRT x0
+    delta_0 = (weights['fc1_w'] @ delta_1.T).T
+
+    # unflatten operation
+    delta_0_unflattened = delta_0.reshape(cache['x_maxpool_output'].shape)
+
+    # gradients through the maxpool operation
+    if USE_FAST_CONV:
+        delta_maxpool = fast_maxpool_backprop(delta_0_unflattened, cache['conv2_output'].shape,
+                                              cache['pos_maxpool_pos'])
+    else:
+        delta_maxpool = maxpool_backprop(delta_0_unflattened, cache['pos_maxpool_pos'], cache['conv2_output'].shape)
+
+    delta_maxpool_w = np.multiply(delta_maxpool, dReLU(cache['conv2_output']))
+
+    if USE_FAST_CONV:
+        conv2_delta_w, conv2_delta_x = \
+            fast_convolution_backprop(cache['conv2_input'], weights['conv2_w'], delta_maxpool_w, padding=CONV_PADDING)
+    else:
+        conv2_delta_w, conv2_delta_x = \
+            convolution_backprop(cache['conv2_input'], weights['conv2_w'], delta_maxpool_w, padding=CONV_PADDING)
+
+    conv2_delta_x = np.multiply(conv2_delta_x, dReLU(cache['conv1_output']))
+
+    if USE_FAST_CONV:
+        conv1_delta_w, _ = fast_convolution_backprop(input_data, weights['conv1_w'], conv2_delta_x,
+                                                     padding=CONV_PADDING)
+    else:
+        conv1_delta_w, _ = convolution_backprop(input_data, weights['conv1_w'], conv2_delta_x, padding=CONV_PADDING)
+
+    if OPTIMIZER == 'ADAM':
+        optimizer['momentum_w1'] = BETA1 * optimizer['momentum_w1'] + ((1 - BETA1) * d_fc1_w)
+        optimizer['momentum_w2'] = BETA1 * optimizer['momentum_w2'] + ((1 - BETA1) * d_fc2_w)
+        optimizer['momentum_b0'] = BETA1 * optimizer['momentum_b0'] + ((1 - BETA1) * d_fc1_b)
+        optimizer['momentum_b1'] = BETA1 * optimizer['momentum_b1'] + ((1 - BETA1) * d_fc2_b)
+        optimizer['momentum_conv1'] = BETA1 * optimizer['momentum_conv1'] + ((1 - BETA1) * conv1_delta_w)
+        optimizer['momentum_conv2'] = BETA1 * optimizer['momentum_conv2'] + ((1 - BETA1) * conv2_delta_w)
+
+        optimizer['velocity_w1'] = BETA2 * optimizer['velocity_w1'] + ((1 - BETA2) * (d_fc1_w ** 2))
+        optimizer['velocity_w2'] = BETA2 * optimizer['velocity_w2'] + ((1 - BETA2) * (d_fc2_w ** 2))
+        optimizer['velocity_b0'] = BETA2 * optimizer['velocity_b0'] + ((1 - BETA2) * (d_fc1_b ** 2))
+        optimizer['velocity_b1'] = BETA2 * optimizer['velocity_b1'] + ((1 - BETA2) * (d_fc2_b ** 2))
+        optimizer['velocity_conv1'] = BETA2 * optimizer['velocity_conv1'] + ((1 - BETA2) * (conv1_delta_w ** 2))
+        optimizer['velocity_conv2'] = BETA2 * optimizer['velocity_conv2'] + ((1 - BETA2) * (conv2_delta_w ** 2))
+
+        # Corrections
+        momentum_w1_corr = optimizer['momentum_w1'] / (1 - (BETA1 ** n_weight_updates))
+        momentum_w2_corr = optimizer['momentum_w2'] / (1 - (BETA1 ** n_weight_updates))
+        momentum_b0_corr = optimizer['momentum_b0'] / (1 - (BETA1 ** n_weight_updates))
+        momentum_b1_corr = optimizer['momentum_b1'] / (1 - (BETA1 ** n_weight_updates))
+        momentum_conv1_corr = optimizer['momentum_conv1'] / (1 - (BETA1 ** n_weight_updates))
+        momentum_conv2_corr = optimizer['momentum_conv2'] / (1 - (BETA1 ** n_weight_updates))
+
+        velocity_w1_corr = optimizer['velocity_w1'] / (1 - (BETA2 ** n_weight_updates))
+        velocity_w2_corr = optimizer['velocity_w2'] / (1 - (BETA2 ** n_weight_updates))
+        velocity_b0_corr = optimizer['velocity_b0'] / (1 - (BETA2 ** n_weight_updates))
+        velocity_b1_corr = optimizer['velocity_b1'] / (1 - (BETA2 ** n_weight_updates))
+        velocity_conv1_corr = optimizer['velocity_conv1'] / (1 - (BETA2 ** n_weight_updates))
+        velocity_conv2_corr = optimizer['velocity_conv2'] / (1 - (BETA2 ** n_weight_updates))
+
+        weights['conv1_w'] = weights['conv1_w'] - (
+                LEARNING_RATE * (momentum_conv1_corr / (np.sqrt(velocity_conv1_corr) + EPS)))
+        weights['conv2_w'] = weights['conv2_w'] - (
+                LEARNING_RATE * (momentum_conv2_corr / (np.sqrt(velocity_conv2_corr) + EPS)))
+        weights['fc1_w'] = weights['fc1_w'] - (LEARNING_RATE * (momentum_w1_corr / (np.sqrt(velocity_w1_corr) + EPS)))
+        weights['fc2_w'] = weights['fc2_w'] - (LEARNING_RATE * (momentum_w2_corr / (np.sqrt(velocity_w2_corr) + EPS)))
+        weights['fc1_b'] = weights['fc1_b'] - (LEARNING_RATE * (momentum_b0_corr / (np.sqrt(velocity_b0_corr) + EPS)))
+        weights['fc2_b'] = weights['fc2_b'] - (LEARNING_RATE * (momentum_b1_corr / (np.sqrt(velocity_b1_corr) + EPS)))
+
+    elif OPTIMIZER == 'MOMENTUM':
+        optimizer['velocity_w1'] = BETA1 * optimizer['velocity_w1'] + ((1 - BETA1) * d_fc1_w)
+        optimizer['velocity_w2'] = BETA1 * optimizer['velocity_w2'] + ((1 - BETA1) * d_fc2_w)
+        optimizer['velocity_b0'] = BETA1 * optimizer['velocity_b0'] + ((1 - BETA1) * d_fc1_b)
+        optimizer['velocity_b1'] = BETA1 * optimizer['velocity_b1'] + ((1 - BETA1) * d_fc2_b)
+        optimizer['velocity_conv1'] = BETA1 * optimizer['velocity_conv1'] + ((1 - BETA1) * conv1_delta_w)
+        optimizer['velocity_conv2'] = BETA1 * optimizer['velocity_conv2'] + ((1 - BETA1) * conv2_delta_w)
+
+        weights['conv1_w'] = weights['conv1_w'] - LEARNING_RATE * optimizer['velocity_conv1']
+        weights['conv2_w'] = weights['conv2_w'] - LEARNING_RATE * optimizer['velocity_conv2']
+        weights['fc1_w'] = weights['fc1_w'] - LEARNING_RATE * optimizer['velocity_w1']
+        weights['fc2_w'] = weights['fc2_w'] - LEARNING_RATE * optimizer['velocity_w2']
+        weights['fc1_b'] = weights['fc1_b'] - LEARNING_RATE * optimizer['velocity_b0']
+        weights['fc2_b'] = weights['fc2_b'] - LEARNING_RATE * optimizer['velocity_b1']
+
+    else:
+        weights['fc2_w'] = weights['fc2_w'] - LEARNING_RATE * d_fc2_w
+        weights['fc2_b'] = weights['fc2_b'] - LEARNING_RATE * d_fc2_b
+
+        weights['fc1_w'] = weights['fc1_w'] - LEARNING_RATE * d_fc1_w
+        weights['fc1_b'] = weights['fc1_b'] - LEARNING_RATE * d_fc1_b
+
+        weights['conv1_w'] = weights['conv1_w'] - LEARNING_RATE * conv1_delta_w
+        weights['conv2_w'] = weights['conv2_w'] - LEARNING_RATE * conv2_delta_w
+
+    return weights, optimizer
+
+
+def train_model(train_images, train_labels,
+                valid_images, valid_labels, epochs):
+    # Check if validation is required
+    compute_validation = valid_images is not None
+
+    # ##############################
+    # CREATE BATCHES
+    # ##############################
+
+    # TRAIN
     train_images_batches = np.split(train_images, np.arange(BATCH_SIZE, len(train_images), BATCH_SIZE))
     train_images_labels = np.split(train_labels, np.arange(BATCH_SIZE, len(train_labels), BATCH_SIZE))
 
-    # Validation
-    val_images_batches = np.split(valid_images, np.arange(BATCH_SIZE, len(valid_images), BATCH_SIZE))
-    val_images_labels = np.split(valid_labels, np.arange(BATCH_SIZE, len(valid_labels), BATCH_SIZE))
+    # VALIDATION
+    if compute_validation:
+        val_images_batches = np.split(valid_images, np.arange(BATCH_SIZE, len(valid_images), BATCH_SIZE))
+        val_images_labels = np.split(valid_labels, np.arange(BATCH_SIZE, len(valid_labels), BATCH_SIZE))
 
-    # Set variables according to the dataset
+    # ##############################
+    # VARIABLE INIT
+    # ##############################
+    # Set some variable according to the dataset
     # MNIST
     input_channels = 1
     fan_in = 2304
@@ -36,324 +228,73 @@ def train_network(train_images, train_labels,
         input_channels = 3
         fan_in = 3136
 
-    # Kernel for the convolution layer
-    kernel = generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3)
-    kernel2 = generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3)
+    weights = {
+        # Convolutional layer weights initialization
+        'conv1_w': generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3),
+        'conv2_w': generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3),
 
-    # HE weight initialization
-    # https: // arxiv.org / pdf / 1502.01852.pdf
-    fc1_w = np.random.randn(fan_in, 64) / np.sqrt(fan_in / 2)
-    fc1_b = np.zeros((1, 64))
+        # Linear layer weights initialization
+        # NOTE: using HE weight initialization (https: // arxiv.org / pdf / 1502.01852.pdf)
+        'fc1_w': np.random.randn(fan_in, 64) / np.sqrt(fan_in / 2),
+        'fc1_b': np.zeros((1, 64)),
+        'fc2_w': np.random.randn(64, 10) / np.sqrt(64 / 2),
+        'fc2_b': np.zeros((1, 10))
+    }
+    optimizer = init_optimizer_dictionary()
 
-    fc2_w = np.random.randn(64, 10) / np.sqrt(64 / 2)
-    fc2_b = np.zeros((1, 10))
+    n_weight_updates = 1
+    best_valid_acc = 0
+    for e in range(epochs):
 
-    # OPTIMIZER PARAMETERS
-    learning_rate = 1e-3
+        start = timer()
 
-    eps = 1e-8
-    beta1 = 0.9
-    beta2 = 0.999
-    momentum_w1 = 0
-    momentum_w2 = 0
-    momentum_b0 = 0
-    momentum_b1 = 0
-    momentum_conv1 = 0
-    momentum_conv2 = 0
-    velocity_w1 = 0
-    velocity_w2 = 0
-    velocity_b0 = 0
-    velocity_b1 = 0
-    velocity_conv1 = 0
-    velocity_conv2 = 0
-    t = 1
-
-    for e in range(EPOCHS):
-
+        # ##############################
+        # TRAIN STEP
+        # ##############################
         train_batch_loss = 0
         train_batch_acc = 0
         train_samples = 0
 
-        start = timer()
-
         for idx, input_data in enumerate(train_images_batches):
-
             train_samples += input_data.shape[0]
 
             input_labels = train_images_labels[idx]
-
             # One hot encoding
-            one_hot_encoding_labels = np.zeros((input_labels.size, 10))
+            input_labels_one_hot_encoded = np.zeros((input_labels.size, 10))
             for i in range(input_labels.shape[0]):
                 position = input_labels[i]
-                one_hot_encoding_labels[i, position] = 1
+                input_labels_one_hot_encoded[i, position] = 1
 
-            # ################################################################################
-            # FORWARD PASS
-            # ################################################################################
-
-            # ********************
-            # CONV 1 + RELU
-            # ********************
-            if use_fast_conv:
-                x_conv = fast_convolve_2d(input_data, kernel, padding=CONV_PADDING)
-            else:
-                x_conv = convolve_2d(input_data, kernel, padding=CONV_PADDING)
-
-            if use_dropout:
-                x_conv = cnn_dropout(x_conv, CONV_DROPOUT_PROBABILITY)
-
-            conv2_input = ReLU(x_conv)
-
-            # ********************
-            # CONV 2 + RELU
-            # ********************
-            if use_fast_conv:
-                x_conv2 = fast_convolve_2d(conv2_input, kernel2, padding=CONV_PADDING)
-            else:
-                x_conv2 = convolve_2d(conv2_input, kernel2, padding=CONV_PADDING)
-
-            if use_dropout:
-                x_conv2 = cnn_dropout(x_conv2, CONV_DROPOUT_PROBABILITY)
-
-            # Save the shape for later use (used during the backpropagation)
-            conv_out_shape2 = x_conv2.shape
-
-            maxpool_input = ReLU(x_conv2)
-
-            # ********************
-            # MAXPOOL
-            # ********************
-            if use_fast_conv:
-                x_maxpool, pos_maxpool_pos = fast_max_pool(maxpool_input)
-            else:
-                x_maxpool, pos_maxpool_pos = max_pool(maxpool_input)
-
-            # ********************
-            # FLATTEN + FCs
-            # ********************
-            fc1_input = flatten(x_maxpool)
-
-            # First fc layer
-            fc1 = np.matmul(fc1_input, fc1_w) + fc1_b
-            fc2_input = ReLU(fc1)
-
-            if use_dropout:
-                fc2_input = dense_dropout(fc2_input, DENSE_DROPOUT_PROBABILITY)
-
-            # Second fc layer
-            fc2 = np.matmul(fc2_input, fc2_w) + fc2_b
-
-            # Apply the softmax for computing the scores
-            scores = softmax(fc2)
-
-            # Compute the cross entropy loss
-            ce = cross_entropy(scores, one_hot_encoding_labels) * input_data.shape[0]
-
-            # Compute prediction and accuracy
-            acc = accuracy(scores, input_labels) * input_data.shape[0]
-
-            # compute for the entire epoch!
+            scores, cache, loss, acc = forward(input_data, input_labels, input_labels_one_hot_encoded, weights)
+            train_batch_loss += loss
             train_batch_acc += acc
-            train_batch_loss += ce
 
-            # ################################################################################
-            # BACKWARD PASS
-            # ################################################################################
-            # https://stats.stackexchange.com/questions/183840/sum-or-average-of-gradients-in-mini-batch-gradient-decent/183990
-            delta_2 = (scores - one_hot_encoding_labels) / BATCH_SIZE
-            d_fc2_w = fc2_input.T @ delta_2
-            d_fc2_b = np.sum(delta_2, axis=0, keepdims=True)
+            weights, optimizer = backward(input_data, input_labels_one_hot_encoded,
+                                          scores, cache, weights, optimizer, n_weight_updates)
+            n_weight_updates += 1
 
-            delta_1 = np.multiply((fc2_w @ delta_2.T).T, dReLU(fc1))
-            d_fc1_w = fc1_input.T @ delta_1
-            d_fc1_b = np.sum(delta_1, axis=0, keepdims=True)
+        # ##############################
+        # VALIDATION STEP
+        # ##############################
+        if compute_validation:
+            valid_batch_loss = 0
+            valid_batch_acc = 0
+            valid_samples = 0
 
-            # gradient WRT x0
-            delta_0 = (fc1_w @ delta_1.T).T
+            for idx, input_data in enumerate(val_images_batches):
+                valid_samples += input_data.shape[0]
 
-            # unflatten operation
-            delta_maxpool = delta_0.reshape(x_maxpool.shape)
+                input_labels = val_images_labels[idx]
 
-            # gradients through the maxpool operation
-            if use_fast_conv:
-                delta_conv2 = fast_maxpool_backprop(
-                    delta_maxpool,
-                    conv_out_shape2,
-                    padding=0,  # not working with max pool padding, seems to be related to the pooling padding
-                    stride=2,
-                    max_pool_size=2,
-                    pos_result=pos_maxpool_pos)
-            else:
-                delta_conv2 = maxpool_backprop(delta_maxpool, pos_maxpool_pos, conv_out_shape2)
+                # One hot encoding
+                input_labels_one_hot_encoded = np.zeros((input_labels.size, 10))
+                for i in range(input_labels.shape[0]):
+                    position = input_labels[i]
+                    input_labels_one_hot_encoded[i, position] = 1
 
-            dX1 = np.multiply(delta_conv2, dReLU(x_conv2))
-
-            if use_fast_conv:
-                conv2_delta, dX2 = fast_convolution_backprop(conv2_input, kernel2, dX1, padding=CONV_PADDING)
-            else:
-                conv2_delta, dX2 = convolution_backprop(conv2_input, kernel2, dX1, padding=CONV_PADDING)
-
-            dX2 = np.multiply(dX2, dReLU(x_conv))
-
-            if use_fast_conv:
-                conv1_delta, _ = fast_convolution_backprop(input_data, kernel, dX2, padding=CONV_PADDING)
-            else:
-                conv1_delta, _ = convolution_backprop(input_data, kernel, dX2, padding=CONV_PADDING)
-
-            if OPTIMIZER == 'ADAM':
-                momentum_w1 = beta1 * momentum_w1 + ((1 - beta1) * d_fc1_w)
-                momentum_w2 = beta1 * momentum_w2 + ((1 - beta1) * d_fc2_w)
-                momentum_b0 = beta1 * momentum_b0 + ((1 - beta1) * d_fc1_b)
-                momentum_b1 = beta1 * momentum_b1 + ((1 - beta1) * d_fc2_b)
-                momentum_conv1 = beta1 * momentum_conv1 + ((1 - beta1) * conv1_delta)
-                momentum_conv2 = beta1 * momentum_conv2 + ((1 - beta1) * conv2_delta)
-
-                velocity_w1 = beta2 * velocity_w1 + ((1 - beta2) * (d_fc1_w ** 2))
-                velocity_w2 = beta2 * velocity_w2 + ((1 - beta2) * (d_fc2_w ** 2))
-                velocity_b0 = beta2 * velocity_b0 + ((1 - beta2) * (d_fc1_b ** 2))
-                velocity_b1 = beta2 * velocity_b1 + ((1 - beta2) * (d_fc2_b ** 2))
-                velocity_conv1 = beta2 * velocity_conv1 + ((1 - beta2) * (conv1_delta ** 2))
-                velocity_conv2 = beta2 * velocity_conv2 + ((1 - beta2) * (conv2_delta ** 2))
-
-                # Corrections
-                momentum_w1_corr = momentum_w1 / (1 - (beta1 ** t))
-                momentum_w2_corr = momentum_w2 / (1 - (beta1 ** t))
-                momentum_b0_corr = momentum_b0 / (1 - (beta1 ** t))
-                momentum_b1_corr = momentum_b1 / (1 - (beta1 ** t))
-                momentum_conv1_corr = momentum_conv1 / (1 - (beta1 ** t))
-                momentum_conv2_corr = momentum_conv2 / (1 - (beta1 ** t))
-
-                velocity_w1_corr = velocity_w1 / (1 - (beta2 ** t))
-                velocity_w2_corr = velocity_w2 / (1 - (beta2 ** t))
-                velocity_b0_corr = velocity_b0 / (1 - (beta2 ** t))
-                velocity_b1_corr = velocity_b1 / (1 - (beta2 ** t))
-                velocity_conv1_corr = velocity_conv1 / (1 - (beta2 ** t))
-                velocity_conv2_corr = velocity_conv2 / (1 - (beta2 ** t))
-                t += 1
-
-                kernel = kernel - (learning_rate * (momentum_conv1_corr / (np.sqrt(velocity_conv1_corr) + eps)))
-                kernel2 = kernel2 - (learning_rate * (momentum_conv2_corr / (np.sqrt(velocity_conv2_corr) + eps)))
-                fc1_w = fc1_w - (learning_rate * (momentum_w1_corr / (np.sqrt(velocity_w1_corr) + eps)))
-                fc2_w = fc2_w - (learning_rate * (momentum_w2_corr / (np.sqrt(velocity_w2_corr) + eps)))
-                fc1_b = fc1_b - (learning_rate * (momentum_b0_corr / (np.sqrt(velocity_b0_corr) + eps)))
-                fc2_b = fc2_b - (learning_rate * (momentum_b1_corr / (np.sqrt(velocity_b1_corr) + eps)))
-
-            elif OPTIMIZER == 'MOMENTUM':
-                velocity_w1 = beta1 * velocity_w1 + ((1 - beta1) * d_fc1_w)
-                velocity_w2 = beta1 * velocity_w2 + ((1 - beta1) * d_fc2_w)
-                velocity_b0 = beta1 * velocity_b0 + ((1 - beta1) * d_fc1_b)
-                velocity_b1 = beta1 * velocity_b1 + ((1 - beta1) * d_fc2_b)
-                velocity_conv1 = beta1 * velocity_conv1 + ((1 - beta1) * conv1_delta)
-                velocity_conv2 = beta1 * velocity_conv2 + ((1 - beta1) * conv2_delta)
-
-                kernel = kernel - learning_rate * velocity_conv1
-                kernel2 = kernel2 - learning_rate * velocity_conv2
-                fc1_w = fc1_w - learning_rate * velocity_w1
-                fc2_w = fc2_w - learning_rate * velocity_w2
-                fc1_b = fc1_b - learning_rate * velocity_b0
-                fc2_b = fc2_b - learning_rate * velocity_b1
-
-            else:
-                fc2_w = fc2_w - learning_rate * d_fc2_w
-                fc2_b = fc2_b - learning_rate * d_fc2_b
-
-                fc1_w = fc1_w - learning_rate * d_fc1_w
-                fc1_b = fc1_b - learning_rate * d_fc1_b
-
-                kernel = kernel - learning_rate * conv1_delta
-                kernel2 = kernel2 - learning_rate * conv2_delta
-
-        # ################################################################################
-        # VALIDATION
-        # ################################################################################
-        valid_batch_loss = 0
-        valid_batch_acc = 0
-        valid_samples = 0
-
-        for idx, input_data in enumerate(val_images_batches):
-            valid_samples += input_data.shape[0]
-
-            input_labels = val_images_labels[idx]
-
-            # One hot encoding
-            one_hot_encoding_labels = np.zeros((input_labels.size, 10))
-            for i in range(input_labels.shape[0]):
-                position = input_labels[i]
-                one_hot_encoding_labels[i, position] = 1
-            # one_hot_encoding_labels = one_hot_encoding_labels.T
-
-            # ################################################################################
-            # FORWARD PASS
-            # ################################################################################
-
-            # ********************
-            # CONV 1 + RELU
-            # ********************
-            if use_fast_conv:
-                x_conv = fast_convolve_2d(input_data, kernel, padding=CONV_PADDING)
-            else:
-                x_conv = convolve_2d(input_data, kernel, padding=CONV_PADDING)
-
-            a = x_conv.shape
-            # Save the shape for later use (used during the backpropagation)
-
-            if use_dropout:
-                x_conv = cnn_dropout(x_conv, CONV_DROPOUT_PROBABILITY)
-
-            conv2_input = ReLU(x_conv)
-
-            # ********************
-            # CONV 2 + RELU
-            # ********************
-            if use_fast_conv:
-                x_conv2 = fast_convolve_2d(conv2_input, kernel2, padding=CONV_PADDING)
-            else:
-                x_conv2 = convolve_2d(conv2_input, kernel2, padding=CONV_PADDING)
-
-            if use_dropout:
-                x_conv2 = cnn_dropout(x_conv2, CONV_DROPOUT_PROBABILITY)
-
-            # Save the shape for later use (used during the backpropagation)
-            conv_out_shape2 = x_conv2.shape
-
-            maxpool_input = ReLU(x_conv2)
-
-            # ********************
-            # MAXPOOL
-            # ********************
-            if use_fast_conv:
-                x_maxpool, pos_maxpool_pos = fast_max_pool(maxpool_input)
-            else:
-                x_maxpool, pos_maxpool_pos = max_pool(maxpool_input)
-
-            # ********************
-            # FLATTEN + FCs
-            # ********************
-            fc1_input = flatten(x_maxpool)
-
-            # First fc layer
-            fc1 = np.matmul(fc1_input, fc1_w) + fc1_b
-            fc2_input = ReLU(fc1)
-
-            if use_dropout:
-                fc2_input = dense_dropout(fc2_input, DENSE_DROPOUT_PROBABILITY)
-
-            # Second fc layer
-            fc2 = np.matmul(fc2_input, fc2_w) + fc2_b
-
-            # Apply the softmax for computing the scores
-            scores = softmax(fc2)
-
-            # Compute the cross entropy loss
-            ce = cross_entropy(scores, one_hot_encoding_labels) * input_data.shape[0]
-
-            # Compute prediction and accuracy
-            acc = accuracy(scores, input_labels) * input_data.shape[0]
-
-            # compute for the entire epoch!
-            valid_batch_acc += acc
-            valid_batch_loss += ce
+                scores, cache, loss, acc = forward(input_data, input_labels, input_labels_one_hot_encoded, weights)
+                valid_batch_loss += loss
+                valid_batch_acc += acc
 
         end = timer()
 
@@ -361,19 +302,60 @@ def train_network(train_images, train_labels,
         print('TRAIN Accuracy: {:.3f}\tTRAIN Loss: {:.3f}'.
               format(train_batch_acc / train_samples, train_batch_loss / train_samples))
 
-        print('VALID Accuracy: {:.3f}\tVALID Loss: {:.3f}'.
-              format(valid_batch_acc / valid_samples, valid_batch_loss / valid_samples))
+        if compute_validation:
+            print('VALID Accuracy: {:.3f}\tVALID Loss: {:.3f}'.
+                  format(valid_batch_acc / valid_samples, valid_batch_loss / valid_samples))
+
         print("Elapsed time (s): {}".format(end - start))
         print()
 
-        path = os.path.join(os.path.dirname(__file__), f'weights/epoch_{e}')
-        os.makedirs(path, exist_ok=True)
-        np.save(f'{path}/fc1_w.npy', fc1_w)
-        np.save(f'{path}/fc1_b.npy', fc1_b)
-        np.save(f'{path}/fc2_w.npy', fc2_w)
-        np.save(f'{path}/fc2_b.npy', fc2_b)
-        np.save(f'{path}/kernel.npy', kernel)
-        np.save(f'{path}/kernel2.npy', kernel2)
+        # Save model weights if validation score is higher
+        if compute_validation:
+            if (valid_batch_acc / valid_samples) > best_valid_acc:
+                save_weights(weights, e, VALIDATION_WEIGHTS_PATH)
+
+    # Save the last training weights
+    if not compute_validation:
+        save_weights(weights, e, TRAIN_WEIGHTS_PATH)
+
+
+def test_model(weights_path, test_images, test_labels):
+    test_images_batches = np.split(test_images, np.arange(BATCH_SIZE, len(test_images), BATCH_SIZE))
+    test_images_labels = np.split(test_labels, np.arange(BATCH_SIZE, len(test_labels), BATCH_SIZE))
+
+    weights = {
+        # Convolutional layer weights initialization
+        'conv1_w': np.load(f'{weights_path}/conv1_w.npy'),
+        'conv2_w': np.load(f'{weights_path}/conv2_w.npy'),
+
+        # Linear layer weights initialization
+        # NOTE: using HE weight initialization (https: // arxiv.org / pdf / 1502.01852.pdf)
+        'fc1_w': np.load(f'{weights_path}/fc1_w.npy'),
+        'fc1_b': np.load(f'{weights_path}/fc1_b.npy'),
+        'fc2_w': np.load(f'{weights_path}/fc2_w.npy'),
+        'fc2_b': np.load(f'{weights_path}/fc2_b.npy'),
+    }
+
+    test_batch_loss = 0
+    test_batch_acc = 0
+    test_samples = 0
+
+    for idx, input_data in enumerate(test_images_batches):
+        test_samples += input_data.shape[0]
+
+        input_labels = test_images_labels[idx]
+        # One hot encoding
+        input_labels_one_hot_encoded = np.zeros((input_labels.size, 10))
+        for i in range(input_labels.shape[0]):
+            position = input_labels[i]
+            input_labels_one_hot_encoded[i, position] = 1
+
+        scores, cache, loss, acc = forward(input_data, input_labels, input_labels_one_hot_encoded, weights)
+        test_batch_loss += loss
+        test_batch_acc += acc
+
+    print('TEST Accuracy: {:.3f}\tTEST Loss: {:.3f}'.
+          format(test_batch_acc / test_samples, test_batch_loss / test_samples))
 
 
 def main():
@@ -384,11 +366,25 @@ def main():
 
     train_images, train_labels, \
         validation_images, validation_labels, \
-        test_images, test_labels = dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
+        test_images, test_labels = \
+        dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
 
-    train_network(train_images, train_labels,
-                  validation_images, validation_labels,
-                  use_fast_conv=True, use_dropout=False)
+    # Uncomment this for doing the training from scratch,
+    # In this case both the training and the validation sets will be used
+    # for hyper parameters tuning.
+    train_model(train_images, train_labels,
+                validation_images, validation_labels, EPOCHS)
+
+    # Load the number of epochs obtained after running the model on train
+    # and validation set
+    epochs = np.load(f'{VALIDATION_WEIGHTS_PATH}/epoch.npy')
+
+    # Uncomment this for performin a training of the full training set.
+    train_model(np.concatenate(train_images, validation_images),
+                np.concatenate(train_labels, validation_labels),
+                None, None, epochs)
+
+    test_model(TRAIN_WEIGHTS_PATH, test_images, test_labels)
 
     print()
 

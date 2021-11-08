@@ -8,3 +8,16 @@ OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
 
 TRAIN_SMALL_DATASET = False
 USE_CIFAR_10 = True
+
+USE_FAST_CONV = True
+USE_DROPOUT = False
+
+
+LEARNING_RATE = 1e-3
+
+EPS = 1e-8
+BETA1 = 0.9
+BETA2 = 0.999
+
+TRAIN_WEIGHTS_PATH = 'weights/train'
+VALIDATION_WEIGHTS_PATH = 'weights/validation'

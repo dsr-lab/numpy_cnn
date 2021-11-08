@@ -1,3 +1,5 @@
+import os
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,6 +51,38 @@ def accuracy(scores, labels):
 
     return acc
 
+
+# ################################################################################
+# MODEL
+# ################################################################################
+def save_weights(weights, epoch, path):
+    path = os.path.join(os.path.dirname(__file__), path)
+    os.makedirs(path, exist_ok=True)
+    np.save(f'{path}/fc1_w.npy', weights['fc1_w'])
+    np.save(f'{path}/fc1_b.npy', weights['fc1_b'])
+    np.save(f'{path}/fc2_w.npy', weights['fc2_w'])
+    np.save(f'{path}/fc2_b.npy', weights['fc2_b'])
+    np.save(f'{path}/conv1_w.npy', weights['conv1_w'])
+    np.save(f'{path}/conv2_w.npy', weights['conv2_w'])
+    np.save(f'{path}/epoch.npy', epoch)
+
+
+def init_optimizer_dictionary():
+    optimizer = {
+        'momentum_w1': 0,
+        'momentum_w2': 0,
+        'momentum_b0': 0,
+        'momentum_b1': 0,
+        'momentum_conv1': 0,
+        'momentum_conv2': 0,
+        'velocity_w1': 0,
+        'velocity_w2': 0,
+        'velocity_b0': 0,
+        'velocity_b1': 0,
+        'velocity_conv1': 0,
+        'velocity_conv2': 0
+    }
+    return optimizer
 
 # ################################################################################
 # FAST CONVOLUTIONS AND MAX POOL UTILITY METHODS

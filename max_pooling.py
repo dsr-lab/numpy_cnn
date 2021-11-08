@@ -177,7 +177,7 @@ def maxpool_backprop(gradient_values, pos_result, conv_shape):
     return delta_conv
 
 
-def fast_maxpool_backprop(gradient_values, conv_shape, padding, stride, max_pool_size, pos_result):
+def fast_maxpool_backprop(gradient_values, conv_shape, pos_result, padding=0, stride=2, max_pool_size=2):
 
     n_channels = conv_shape[1]
     # values coming from gradients during the backpropagation
