@@ -223,8 +223,8 @@ def train_model(train_images, train_labels,
         val_images_batches = np.split(valid_images, np.arange(BATCH_SIZE, len(valid_images), BATCH_SIZE))
         val_images_labels = np.split(valid_labels, np.arange(BATCH_SIZE, len(valid_labels), BATCH_SIZE))
 
+    # Init model weights and optimizer parameters
     weights = init_model_weights()
-
     optimizer = init_optimizer_dictionary()
 
     # Number of times the weights are updated (needed for ADAM)
@@ -236,10 +236,6 @@ def train_model(train_images, train_labels,
         print(f'=== EPOCH {e} ===')
         print('Epoch {} started...'.format(e))
         start = timer()
-
-        # show_image(weights['conv1_w'][0, :])
-        # show_first_layer(weights['conv1_w'])
-        # show_first_layer(weights['conv1_w'], e)
 
         # ##############################
         # TRAIN STEP

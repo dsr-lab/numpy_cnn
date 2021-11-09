@@ -64,15 +64,10 @@ def show_image(image, title=None):
 # ################################################################################
 def accuracy(scores, labels):
     n_samples = scores.shape[0]
-
     predictions = np.argmax(scores, axis=1)
-
     n_correct = (labels == predictions).sum()
 
-    #acc = n_correct / n_samples
-
     acc = np.true_divide(n_correct, n_samples)
-
     return acc
 
 
