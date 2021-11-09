@@ -9,7 +9,7 @@ def fast_max_pool(inputs, stride=2, kernel_h=2, kernel_w=2, padding=0):
     n_images, n_channels, input_h, input_w = inputs.shape
 
     # Transform to matrix and reshape
-    input_matrix = im2col_(inputs, kernel_h, kernel_w, stride, padding)
+    input_matrix = im2col(inputs, kernel_h, kernel_w, stride, padding)
     # Reshape in a way that allow us to have:
     # - the expected number of channels, that must be the same of the inputs
     # - the number of rows of the matrix true divided for the number of channels
@@ -200,7 +200,7 @@ def fast_maxpool_backprop(gradient_values, conv_shape, pos_result, padding=0, st
     # delta_conv = np.zeros((2, 3, 4, 4))  # shape of the gradient
     delta_conv = np.zeros(conv_shape)
     delta_conv_shape = delta_conv.shape
-    delta_conv_col = im2col_(delta_conv, max_pool_size, max_pool_size, stride, padding)
+    delta_conv_col = im2col(delta_conv, max_pool_size, max_pool_size, stride, padding)
 
     # Those are indexes channel wise    n_channels = 3
     # pos_result = [[2, 3, 0, 1, 2, 3, 0, 1], [2, 0, 2, 2, 2, 0, 2, 2], [2, 0, 0, 1, 2, 0, 0, 3]]

@@ -91,7 +91,6 @@ def forward(input_data, input_labels, input_labels_one_hot_encoded, weights):
 
 
 def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, optimizer, n_weight_updates):
-
     # https://stats.stackexchange.com/questions/183840/sum-or-average-of-gradients-in-mini-batch-gradient-decent/183990
     delta_2 = (scores - input_labels_one_hot_encoded) / BATCH_SIZE
     d_fc2_w = cache['fc2_input'].T @ delta_2
@@ -174,19 +173,19 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
         weights['fc2_b'] = weights['fc2_b'] - (LEARNING_RATE * (momentum_b1_corr / (np.sqrt(velocity_b1_corr) + EPS)))
 
     elif OPTIMIZER == 'MOMENTUM':
-        optimizer['velocity_w1'] = BETA1 * optimizer['velocity_w1'] + ((1 - BETA1) * d_fc1_w)
-        optimizer['velocity_w2'] = BETA1 * optimizer['velocity_w2'] + ((1 - BETA1) * d_fc2_w)
-        optimizer['velocity_b0'] = BETA1 * optimizer['velocity_b0'] + ((1 - BETA1) * d_fc1_b)
-        optimizer['velocity_b1'] = BETA1 * optimizer['velocity_b1'] + ((1 - BETA1) * d_fc2_b)
-        optimizer['velocity_conv1'] = BETA1 * optimizer['velocity_conv1'] + ((1 - BETA1) * conv1_delta_w)
-        optimizer['velocity_conv2'] = BETA1 * optimizer['velocity_conv2'] + ((1 - BETA1) * conv2_delta_w)
+        optimizer['velocity_w1'] = BETA1 * optimizer['velocity_w1'] - (LEARNING_RATE * d_fc1_w)
+        optimizer['velocity_w2'] = BETA1 * optimizer['velocity_w2'] - (LEARNING_RATE * d_fc2_w)
+        optimizer['velocity_b0'] = BETA1 * optimizer['velocity_b0'] - (LEARNING_RATE * d_fc1_b)
+        optimizer['velocity_b1'] = BETA1 * optimizer['velocity_b1'] - (LEARNING_RATE * d_fc2_b)
+        optimizer['velocity_conv1'] = BETA1 * optimizer['velocity_conv1'] - (LEARNING_RATE * conv1_delta_w)
+        optimizer['velocity_conv2'] = BETA1 * optimizer['velocity_conv2'] - (LEARNING_RATE * conv2_delta_w)
 
-        weights['conv1_w'] = weights['conv1_w'] - LEARNING_RATE * optimizer['velocity_conv1']
-        weights['conv2_w'] = weights['conv2_w'] - LEARNING_RATE * optimizer['velocity_conv2']
-        weights['fc1_w'] = weights['fc1_w'] - LEARNING_RATE * optimizer['velocity_w1']
-        weights['fc2_w'] = weights['fc2_w'] - LEARNING_RATE * optimizer['velocity_w2']
-        weights['fc1_b'] = weights['fc1_b'] - LEARNING_RATE * optimizer['velocity_b0']
-        weights['fc2_b'] = weights['fc2_b'] - LEARNING_RATE * optimizer['velocity_b1']
+        weights['conv1_w'] = weights['conv1_w'] + optimizer['velocity_conv1']
+        weights['conv2_w'] = weights['conv2_w'] + optimizer['velocity_conv2']
+        weights['fc1_w'] = weights['fc1_w'] + optimizer['velocity_w1']
+        weights['fc2_w'] = weights['fc2_w'] + optimizer['velocity_w2']
+        weights['fc1_b'] = weights['fc1_b'] + optimizer['velocity_b0']
+        weights['fc2_b'] = weights['fc2_b'] + optimizer['velocity_b1']
 
     else:
         weights['fc2_w'] = weights['fc2_w'] - LEARNING_RATE * d_fc2_w
@@ -204,7 +203,9 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
 def train_model(train_images, train_labels,
                 valid_images, valid_labels, epochs):
 
-    print(f'Training started...')
+    print('##############################')
+    print('# TRAIN MODEL')
+    print('##############################')
 
     # Flag indicating if the validation is required
     validation_required = valid_images is not None
@@ -222,30 +223,8 @@ def train_model(train_images, train_labels,
         val_images_batches = np.split(valid_images, np.arange(BATCH_SIZE, len(valid_images), BATCH_SIZE))
         val_images_labels = np.split(valid_labels, np.arange(BATCH_SIZE, len(valid_labels), BATCH_SIZE))
 
-    # ##############################
-    # VARIABLE INIT
-    # ##############################
-    # Set some variable according to the dataset
-    # MNIST
-    input_channels = 1
-    fan_in = 2304
-    # CIFAR10
-    if USE_CIFAR_10:
-        input_channels = 3
-        fan_in = 3136
+    weights = init_model_weights()
 
-    weights = {
-        # Convolutional layer weights initialization
-        'conv1_w': generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3),
-        'conv2_w': generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3),
-
-        # Linear layer weights initialization
-        # NOTE: using HE weight initialization (https: // arxiv.org / pdf / 1502.01852.pdf)
-        'fc1_w': np.random.randn(fan_in, 64) / np.sqrt(fan_in / 2),
-        'fc1_b': np.zeros((1, 64)),
-        'fc2_w': np.random.randn(64, 10) / np.sqrt(64 / 2),
-        'fc2_b': np.zeros((1, 10))
-    }
     optimizer = init_optimizer_dictionary()
 
     # Number of times the weights are updated (needed for ADAM)
@@ -254,8 +233,13 @@ def train_model(train_images, train_labels,
     # Keep track of the current best valid accuracy
     best_valid_acc = 0
     for e in range(epochs):
-
+        print(f'=== EPOCH {e} ===')
+        print('Epoch {} started...'.format(e))
         start = timer()
+
+        # show_image(weights['conv1_w'][0, :])
+        # show_first_layer(weights['conv1_w'])
+        # show_first_layer(weights['conv1_w'], e)
 
         # ##############################
         # TRAIN STEP
@@ -307,22 +291,21 @@ def train_model(train_images, train_labels,
 
         end = timer()
 
-        print('=== EPOCH: {} ==='.format(e))
-        print('TRAIN Accuracy: {:.3f}\tTRAIN Loss: {:.3f}'.
+        print('\tTRAIN Accuracy: {:.3f}\tTRAIN Loss: {:.3f}'.
               format(train_batch_acc / train_samples, train_batch_loss / train_samples))
 
         if validation_required:
-            print('VALID Accuracy: {:.3f}\tVALID Loss: {:.3f}'.
+            print('\tVALID Accuracy: {:.3f}\tVALID Loss: {:.3f}'.
                   format(valid_batch_acc / valid_samples, valid_batch_loss / valid_samples))
 
-        print("Elapsed time (s): {}".format(end - start))
+        print(f"Epoch {e} completed in (s): {end - start}")
 
         # Save model weights if validation score is higher
         if validation_required:
             if (valid_batch_acc / valid_samples) > best_valid_acc:
                 best_valid_acc = valid_batch_acc / valid_samples
-                print(f'Better accuracy found: {valid_batch_acc / valid_samples}. Saving weights...')
-                save_weights(weights, e+1, VALIDATION_WEIGHTS_PATH)
+                print(f'\n(Higher accuracy found. Saving weights...)')
+                save_weights(weights, e + 1, VALIDATION_WEIGHTS_PATH)
 
         print()
 
@@ -335,8 +318,9 @@ def train_model(train_images, train_labels,
 
 
 def test_model(weights_path, test_images, test_labels):
-
-    print(f'Testing started...')
+    print('##############################')
+    print('# TEST MODEL')
+    print('##############################')
 
     # Split in batches
     test_images_batches = np.split(test_images, np.arange(BATCH_SIZE, len(test_images), BATCH_SIZE))
@@ -369,7 +353,6 @@ def test_model(weights_path, test_images, test_labels):
 
 
 def main():
-
     if USE_CIFAR_10:
         dataset = Cifar10()
     else:
@@ -384,7 +367,7 @@ def main():
     # TRAIN + VALIDATION
     # ######################################################################
     train_model(train_images, train_labels,
-                 validation_images, validation_labels, EPOCHS)
+                validation_images, validation_labels, EPOCHS)
 
     # ######################################################################
     # TRAIN
@@ -393,7 +376,8 @@ def main():
     # and validation set
     _, epochs = load_weights(VALIDATION_WEIGHTS_PATH)
 
-    print(f'Best epochs loaded from file system: {epochs[0]}')
+    print(f'Best epochs loaded from file system: {epochs[0]-1}')
+    print()
 
     train_model(np.concatenate((train_images, validation_images)),
                 np.concatenate((train_labels, validation_labels)),

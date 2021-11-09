@@ -1,8 +1,8 @@
-EPOCHS = 30
+EPOCHS = 15
 BATCH_SIZE = 128
 
 USE_CIFAR_10 = False
-TRAIN_SMALL_DATASET = False
+TRAIN_SMALL_DATASET = True
 
 USE_FAST_CONV = True
 USE_DROPOUT = False
@@ -13,9 +13,11 @@ LEARNING_RATE = 1e-3
 EPS = 1e-8
 BETA1 = 0.9
 BETA2 = 0.999
-OPTIMIZER = 'ADAM'  # Valid values: ADAM, MOMENTUM
+OPTIMIZER = 'MOMENTUM'  # Valid values: ADAM, MOMENTUM
 
-TRAIN_WEIGHTS_PATH = 'weights/train'
-VALIDATION_WEIGHTS_PATH = 'weights/validation'
+TRAIN_WEIGHTS_PATH = 'weights/cifar10_train' if USE_CIFAR_10 else 'weights/mnist_train'
+VALIDATION_WEIGHTS_PATH = 'weights/cifar10_validation' if USE_CIFAR_10 else 'weights/mnist_validation'
 
 CONV_PADDING = 0
+
+USE_HE_WEIGHT_INITIALIZATION = True

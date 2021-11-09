@@ -1,3 +1,4 @@
+from config import USE_HE_WEIGHT_INITIALIZATION
 from utils import *
 
 
@@ -81,7 +82,7 @@ def fast_convolve_2d(inputs, kernel, padding=0, stride=1):
     out_w = int((input_w + 2 * padding - kernel_w) / stride) + 1
 
     # Transform to matrix and reshape
-    input_matrix = im2col_(inputs, kernel_h, kernel_w, stride, padding)
+    input_matrix = im2col(inputs, kernel_h, kernel_w, stride, padding)
 
     # Reshape the kernel based on the number of channels
     # (e.g.: one channel = one row in the resulting matrix)
@@ -192,7 +193,7 @@ def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride
     # Get required variables from the kernel shape
     out_channels, in_channels, kernel_h, kernel_w = kernel.shape
 
-    X_col = im2col_(inputs, kernel_h, kernel_w, stride, padding)
+    X_col = im2col(inputs, kernel_h, kernel_w, stride, padding)
     w_col = kernel.reshape((out_channels, -1))
 
     m, _, _, _ = inputs.shape
@@ -219,19 +220,3 @@ def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride
     dW = dw_col.reshape((dw_col.shape[0], in_channels, kernel_h, kernel_w))
 
     return dW, dX
-
-
-def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3, random=True):
-
-    if random:
-        receptive_field_size = kernel_h * kernel_w
-        fan_in = input_channels * receptive_field_size
-
-        # XAVIER
-        return np.random.randn(output_channels, input_channels, kernel_h, kernel_w) / np.sqrt(fan_in / 2)
-        # HE
-        # return np.random.standard_normal((output_channels, input_channels, kernel_h, kernel_w)) * np.sqrt(2 / fan_in)
-
-
-    else:
-        return np.ones((output_channels, input_channels, kernel_h, kernel_w)) * 2

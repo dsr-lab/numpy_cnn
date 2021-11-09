@@ -4,6 +4,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+from config import *
+
 matplotlib.use("TkAgg")
 
 
@@ -23,7 +25,29 @@ def show_gray_scale_image(image, title=None):
         plt.title(title)
 
 
+def show_first_layer(image, title):
+    fig = plt.figure(figsize=(10, 10))
+    columns = image.shape[0]
+    rows = 1
+    for i in range(0, columns * rows):
+        fig.add_subplot(rows, columns, i+1)
+        img = normalize_image_0_to_1(image[i])
+        img = np.transpose(img, (1, 2, 0))
+        plt.imshow(np.transpose(img, (1, 2, 0)))
+    plt.savefig(f'test/{title}.png')
+    plt.close(fig)
+    #plt.show(block=True)
+
+
+def normalize_image_0_to_1(image):
+    if image.min() < 0:
+        return np.interp(image, (image.min(), image.max()), (0, 1))
+    return image
+
+
 def show_image(image, title=None):
+
+    image = normalize_image_0_to_1(image)
     # npimg = image.numpy()
 
     # initially (3, 32, 32), pyplot expects (32, 32, 3)
@@ -56,15 +80,17 @@ def accuracy(scores, labels):
 # MODEL
 # ################################################################################
 def save_weights(weights, epoch, path):
-    path = os.path.join(os.path.dirname(__file__), path)
-    os.makedirs(path, exist_ok=True)
-    np.save(f'{path}/fc1_w.npy', weights['fc1_w'])
-    np.save(f'{path}/fc1_b.npy', weights['fc1_b'])
-    np.save(f'{path}/fc2_w.npy', weights['fc2_w'])
-    np.save(f'{path}/fc2_b.npy', weights['fc2_b'])
-    np.save(f'{path}/conv1_w.npy', weights['conv1_w'])
-    np.save(f'{path}/conv2_w.npy', weights['conv2_w'])
-    np.save(f'{path}/epoch.npy', epoch)
+    # Do not save weights if running the model on a dummy dataset
+    if not TRAIN_SMALL_DATASET:
+        path = os.path.join(os.path.dirname(__file__), path)
+        os.makedirs(path, exist_ok=True)
+        np.save(f'{path}/fc1_w.npy', weights['fc1_w'])
+        np.save(f'{path}/fc1_b.npy', weights['fc1_b'])
+        np.save(f'{path}/fc2_w.npy', weights['fc2_w'])
+        np.save(f'{path}/fc2_b.npy', weights['fc2_b'])
+        np.save(f'{path}/conv1_w.npy', weights['conv1_w'])
+        np.save(f'{path}/conv2_w.npy', weights['conv2_w'])
+        np.save(f'{path}/epoch.npy', epoch)
 
 
 def load_weights(weights_path):
@@ -96,6 +122,67 @@ def init_optimizer_dictionary():
         'velocity_conv2': 0
     }
     return optimizer
+
+
+def init_model_weights():
+
+    # Set some variable according to the dataset
+    # MNIST
+    input_channels = 1
+    fan_in = 2304
+    # CIFAR10
+    if USE_CIFAR_10:
+        input_channels = 3
+        fan_in = 3136
+
+    if USE_HE_WEIGHT_INITIALIZATION:
+        weights = {
+            # Convolutional layer weights initialization
+            'conv1_w': generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3),
+            'conv2_w': generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3),
+
+            # Linear layer weights initialization
+            # NOTE: using HE weight initialization (https: // arxiv.org / pdf / 1502.01852.pdf)
+            'fc1_w': np.random.randn(fan_in, 64) / np.sqrt(fan_in / 2),
+            'fc1_b': np.zeros((1, 64)),
+            'fc2_w': np.random.randn(64, 10) / np.sqrt(64 / 2),
+            'fc2_b': np.zeros((1, 10))
+        }
+    else:
+        fc1_stdv = 1. / np.sqrt(fan_in)
+        fc2_stdv = 1. / np.sqrt(64)
+        weights = {
+            # Convolutional layer weights initialization
+            'conv1_w': generate_kernel(input_channels=input_channels, output_channels=8, kernel_h=3, kernel_w=3),
+            'conv2_w': generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3),
+
+            # Linear layer weights initialization
+            # NOTE: using HE weight initialization (https: // arxiv.org / pdf / 1502.01852.pdf)
+            'fc1_w': np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(fan_in, 64)),
+            'fc1_b': np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(1, 64)),
+            'fc2_w': np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(64, 10)),
+            'fc2_b': np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(1, 10))
+        }
+
+    return weights
+
+
+def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3, random=True):
+
+    # Compute fan_in, which represets the amount of neurons of the parent layer
+    receptive_field_size = kernel_h * kernel_w
+    fan_in = input_channels * receptive_field_size
+
+    if random:
+        if USE_HE_WEIGHT_INITIALIZATION:
+            return np.random.randn(output_channels, input_channels, kernel_h, kernel_w) / np.sqrt(fan_in / 2)
+        else:
+            stdv = 1. / np.sqrt(fan_in)
+            return np.random.uniform(low=-stdv, high=stdv, size=(output_channels, input_channels, kernel_h, kernel_w))
+
+    else:
+        return np.ones((output_channels, input_channels, kernel_h, kernel_w)) * 2
+
 
 # ################################################################################
 # FAST CONVOLUTIONS AND MAX POOL UTILITY METHODS
@@ -163,8 +250,6 @@ def get_indices(input_shape, filter_h, filter_w, stride, pad):
     # Sum the two vectors
     column_indices = column_indices_vector_0.reshape(-1, 1) + sum_vector.reshape(1, -1)
 
-    # ----Compute matrix of index d----
-
     # Matrix required for considering different channels while processing
     # the row_indices and column_indices variables.
     # This is required later for reshaping to the expected output, which should not be a matrix.
@@ -173,7 +258,7 @@ def get_indices(input_shape, filter_h, filter_w, stride, pad):
     return row_indices, column_indices, channel_matrix
 
 
-def im2col_(images, filter_h, filter_w, stride, pad):
+def im2col(images, filter_h, filter_w, stride, pad):
     # Apply the padding
     padded_images = np.pad(images, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
     row_indices, col_indices, channel_matrix = get_indices(images.shape, filter_h, filter_w, stride, pad)
