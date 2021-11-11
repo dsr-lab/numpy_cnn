@@ -202,7 +202,6 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
 
 def train_model(train_images, train_labels,
                 valid_images, valid_labels, epochs):
-
     print('##############################')
     print('# TRAIN MODEL')
     print('##############################')
@@ -355,9 +354,11 @@ def main():
         dataset = Mnist()
 
     train_images, train_labels, \
-        validation_images, validation_labels, \
-        test_images, test_labels = \
+    validation_images, validation_labels, \
+    test_images, test_labels = \
         dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
+
+    convolution_method_comparisons(train_images[:10], generate_kernel(), np.random.rand(10, 16, 30, 30))
 
     # ######################################################################
     # TRAIN + VALIDATION
@@ -372,7 +373,7 @@ def main():
     # and validation set
     _, epochs = load_weights(VALIDATION_WEIGHTS_PATH)
 
-    print(f'Best epochs loaded from file system: {epochs[0]-1}')
+    print(f'Best epochs loaded from file system: {epochs[0] - 1}')
     print()
 
     train_model(np.concatenate((train_images, validation_images)),

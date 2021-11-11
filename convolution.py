@@ -154,30 +154,37 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
     Returns
     -------
     dW : ndarray
-        The derivative computed WRT the weights
+        The derivative computed WRT the weights.
+        This basically represents a convolution between the INPUT of the convolutional
+        layer, and the gradients that are flowing back from the following layer
+        during the backpropagation
     dX : ndarray
-        The derivative computed WRT the inputs
+        The derivative computed WRT the inputs.
+        This basically represents a FULL CONVOLUTION between the FLIPPED KERNEL WEIGHTS
+        of the convolutional layer, and the gradients that are flowing back from
+        the following layer during the backpropagation
     """
+    # Get required variables from the kernel shape
     output_channels = kernel.shape[0]
     input_channels = kernel.shape[1]
     kernel_h = kernel.shape[2]
     kernel_w = kernel.shape[3]
 
-    # Initializing dW and dX with the expected shapes
+    # Initializing dW with the expected shape
     dW = np.zeros(kernel.shape)
-    dX = np.zeros_like(X)
 
-    # Compute the gradients WRT the weights (dW)
-    # Cycle all the images in the batch
+    # Cycle all the inputs in the batch.
+    # For simplicity, refer to inputs as images.
     for image_idx in range(X.shape[0]):
-        # Cycle all the filters in the convolutional layer
         # Extract a single image
         current_image = X[image_idx, :, :, :]
         # Apply padding
         current_image = np.pad(current_image, ((0, 0), (padding, padding), (padding, padding)), mode='constant')
-        a = current_image.shape
-        # We have to compute the derivative for each filter in the layer
-        for filter_position in range(kernel.shape[0]):
+
+        # Consider each filter in the convolutional layer independently
+        for filter_position in range(output_channels):
+
+            # Now get the portion of the image where the convolution with the gradients will be applied.
 
             # Slide the image, starting from its height.
             #  - current_image.shape[0] = channels
@@ -185,14 +192,16 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
             #  - current_image.shape[2] = width
             for i in range(0, current_image.shape[1], stride):
 
-                # Extract the sub-portion of the image
+                # Extract the first sub-part of the image
                 # - get all channels
                 # - height ==> from i to i + kernel_size
-                # - width ==> all the width
+                # - width ==> all the widths
                 image_rectangle = current_image[:, i:i + kernel_h, :]
                 if image_rectangle.shape[1] < kernel_h:
                     continue
                 else:
+                    # Now repeat the same operation as before, but for getting a specific width,
+                    # which must be equal to the kernel weight
                     for j in range(0, image_rectangle.shape[2], stride):
                         if j >= image_rectangle.shape[2]:
                             continue
@@ -200,12 +209,16 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
                         if image_portion.shape[2] < kernel_w:
                             continue
                         else:
-                            # Each channel in the input must be considered independently
-                            for channel in range(image_portion.shape[0]):
-                                out = image_portion[channel, :, :] * gradient_values[image_idx, filter_position, i, j]
-                                dW[filter_position, channel, :, :] += out
+                            # Multiply a specific gradient value with the portion of the input image
+                            # where the convolution can be applied.
+                            out = image_portion[:, :, :] * gradient_values[image_idx, filter_position, i, j]
+                            # Update the derivative by summing the current values with the ones just computed.
+                            # Some of the regions overlaps during the convolution operation.
+                            dW[filter_position, :, :, :] += out
 
     # Compute the gradients WRT the inputs (dX)
+    # Init dX with the expected shape
+    dX = np.zeros_like(X)
     # Pad if required
     dx_padded = np.pad(dX, ((0,), (0,), (padding,), (padding,)), 'constant')
     gradient_values_padded = np.pad(gradient_values, ((0,), (0,), (kernel_w - 1,), (kernel_h - 1,)), 'constant')

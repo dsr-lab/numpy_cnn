@@ -154,10 +154,10 @@ def convolution_method_comparisons(X, kernel, gradient_values):
         print("BACKPROB EQUAL")
     else:
         print("BACKPROP NOT EQUAL")
-    a = np.isclose(dw1, dw2).all()
-    b = np.isclose(dw1, dw3).all()
-    c = np.isclose(dx1, dx2).all()
-    d = np.isclose(dx1, dx3).all()
+    aa = np.isclose(dw1, dw2).all()
+    bb = np.isclose(dw1, dw3).all()
+    cc = np.isclose(dx1, dx2).all()
+    dd = np.isclose(dx1, dx3).all()
 
     print()
 
