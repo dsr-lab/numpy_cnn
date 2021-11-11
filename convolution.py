@@ -107,12 +107,10 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
     kernel_h = kernel.shape[2]
     kernel_w = kernel.shape[3]
 
-    # Initializing dX, dW with the correct shapes
-    #dX = np.zeros(X.shape)
+    # Initializing dW with the correct shapes
     dW = np.zeros(kernel.shape)
     dW_shape = dW.shape
 
-    dX = np.zeros(X.shape)
     dX = np.zeros_like(X)
 
     # Cycle all the images in the batch
@@ -151,15 +149,6 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
                             for channel in range(image_portion.shape[0]):
                                 out = image_portion[channel, :, :] * gradient_values[image_idx, filter_position, i, j]
                                 dW[filter_position, channel, :, :] += out
-
-    # for row in range(0, X.shape[2], stride):
-    #     for col in range(0, X.shape[3], stride):
-    #         for current_filter in range(0, kernel.shape[0]):
-    #             for output_channel in range(0, gradient_values.shape[1]):
-    #
-    #                 filter_portion = kernel[output_channel, :, row, col]
-    #                 a = filter_portion * gradient_values[:, output_channel, 0, 0]
-    #                 #dX[:, :, row, col] =
 
     # 0-padding juste sur les deux dernières dimensions de dx
     dxp = np.pad(dX, ((0,), (0,), (padding,), (padding,)), 'constant')

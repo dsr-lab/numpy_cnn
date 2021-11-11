@@ -23,7 +23,7 @@ def forward(input_data, input_labels, input_labels_one_hot_encoded, weights):
         conv1_output = convolve_2d(input_data, weights['conv1_w'], padding=CONV_PADDING)
 
     if USE_DROPOUT:
-        conv1_output = cnn_dropout(weights['conv1_output'], CONV_DROPOUT_PROBABILITY)
+        conv1_output = cnn_dropout(conv1_output, CONV_DROPOUT_PROBABILITY)
 
     conv2_input = ReLU(conv1_output)
 
