@@ -3,7 +3,7 @@ BATCH_SIZE = 128
 CONV_PADDING = 0
 
 USE_CIFAR_10 = True
-TRAIN_SMALL_DATASET = False  # Just try on dummy dataset
+TRAIN_SMALL_DATASET = True  # Just try on dummy dataset
 USE_HE_WEIGHT_INITIALIZATION = True  # True for best results
 
 USE_FAST_CONV = True

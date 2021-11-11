@@ -167,6 +167,7 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
     dW = np.zeros(kernel.shape)
     dX = np.zeros_like(X)
 
+    # Compute the gradients WRT the weights (dW)
     # Cycle all the images in the batch
     for image_idx in range(X.shape[0]):
         # Cycle all the filters in the convolutional layer
@@ -204,27 +205,32 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
                                 out = image_portion[channel, :, :] * gradient_values[image_idx, filter_position, i, j]
                                 dW[filter_position, channel, :, :] += out
 
-    # 0-padding juste sur les deux dernières dimensions de dx
-    dxp = np.pad(dX, ((0,), (0,), (padding,), (padding,)), 'constant')
-    doutp = np.pad(gradient_values, ((0,), (0,), (kernel_w - 1,), (kernel_h - 1,)), 'constant')
+    # Compute the gradients WRT the inputs (dX)
+    # Pad if required
+    dx_padded = np.pad(dX, ((0,), (0,), (padding,), (padding,)), 'constant')
+    gradient_values_padded = np.pad(gradient_values, ((0,), (0,), (kernel_w - 1,), (kernel_h - 1,)), 'constant')
 
-    # filtre inversé dimension (F, C, HH, WW)
-    w_ = np.zeros_like(kernel)
+    # Flip the kernel
+    kernel_flipped = np.zeros_like(kernel)
     for i in range(kernel_h):
         for j in range(kernel_w):
-            w_[:, :, i, j] = kernel[:, :, kernel_h - i - 1, kernel_w - j - 1]
+            kernel_flipped[:, :, i, j] = kernel[:, :, kernel_h - i - 1, kernel_w - j - 1]
 
-    # Version sans vectorisation
-    for n in range(X.shape[0]):  # On parcourt toutes les images
-        for f in range(output_channels):  # On parcourt tous les filtres
-            for i in range(X.shape[2] + 2 * padding):  # indices de l'entrée participant au résultat
+    # Cycle all the images in the batch
+    for n in range(X.shape[0]):
+        # Cycle all the filters in the convolutional layer
+        for f in range(output_channels):
+            # Indices of the inputs that are involved (height)
+            for i in range(X.shape[2] + 2 * padding):
+                # Indices of the inputs that are involved (width)
                 for j in range(X.shape[3] + 2 * padding):
-                    for k in range(kernel_h):  # indices du filtre
+                    for k in range(kernel_h):
                         for l in range(kernel_w):
-                            for c in range(X.shape[1]):  # profondeur
-                                dxp[n, c, i, j] += doutp[n, f, i + k, j + l] * w_[f, c, k, l]
+                            # Cycle the channels
+                            for c in range(X.shape[1]):
+                                dx_padded[n, c, i, j] += gradient_values_padded[n, f, i + k, j + l] * kernel_flipped[f, c, k, l]
 
-    dX = dxp[:, :, padding:dX.shape[2], padding:dX.shape[3]]
+    dX = dx_padded[:, :, padding:dX.shape[2], padding:dX.shape[3]]
 
     return dW, dX
 
