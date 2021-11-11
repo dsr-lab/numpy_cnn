@@ -1,10 +1,28 @@
-from config import USE_HE_WEIGHT_INITIALIZATION
 from utils import *
 
 
-# Actually is a cross-correlation (no kernel flip)
 def convolve_2d(images, kernel, padding=0, stride=1):
+    """
+    Compute the NAIVE version of the convolution
 
+    Parameters
+    ----------
+    images : ndarray
+        Inputs of the convolutional layer
+    kernel : ndarray
+        Kernel containing the weights of the convolutional layer
+    padding: int, optional
+        The possible padding applied to the inputs
+    stride: int, optional
+        The stride applied for the convolution operation
+
+    Returns
+    -------
+    convolution_result : ndarray
+        The result of the computed convolution
+    """
+
+    # Get kernel shape values
     output_channels = kernel.shape[0]
     input_channels = kernel.shape[1]
     kernel_h = kernel.shape[2]
@@ -14,13 +32,10 @@ def convolve_2d(images, kernel, padding=0, stride=1):
     output_h = int(((images.shape[2] + 2 * padding - kernel.shape[2]) / stride) + 1)
     output_w = int(((images.shape[3] + 2 * padding - kernel.shape[3]) / stride) + 1)
 
-    # Init the convolution matrix with random values
-    # convolution_result = np.random.rand(images.shape[0], output_channels, output_h, output_w)
-    # a = convolution_result.shape
-
     # Init the convolution matrix with zero values
     convolution_result = np.zeros((images.shape[0], output_channels, output_h, output_w),
                                   dtype=np.float)
+
     # Cycle all the images in the batch
     for image_idx in range(images.shape[0]):
         # Extract a single image
@@ -70,6 +85,25 @@ def convolve_2d(images, kernel, padding=0, stride=1):
 
 
 def fast_convolve_2d(inputs, kernel, padding=0, stride=1):
+    """
+    Compute the FAST version of the convolution
+
+    Parameters
+    ----------
+    inputs : ndarray
+        Inputs of the convolutional layer
+    kernel : ndarray
+        Kernel containing the weights of the convolutional layer
+    padding: int, optional
+        The possible padding applied to the inputs
+    stride: int, optional
+        The stride applied for the convolution operation
+
+    Returns
+    -------
+    conv_result : ndarray
+        The result of the computed convolution
+    """
 
     # Get required variables from the input shape
     n_images, n_channels, input_h, input_w = inputs.shape
@@ -81,7 +115,7 @@ def fast_convolve_2d(inputs, kernel, padding=0, stride=1):
     out_h = int((input_h + 2 * padding - kernel_h) / stride) + 1
     out_w = int((input_w + 2 * padding - kernel_w) / stride) + 1
 
-    # Transform to matrix and reshape
+    # Transform to matrix
     input_matrix = im2col(inputs, kernel_h, kernel_w, stride, padding)
 
     # Reshape the kernel based on the number of channels
@@ -91,26 +125,46 @@ def fast_convolve_2d(inputs, kernel, padding=0, stride=1):
     # perform the matrix multiplication that emulates the convolution
     conv_matrix = kernel_matrix @ input_matrix
 
-    # reshape to the expected shape after the convolution (2,2,3,3)
+    # reshape to the expected shape after the convolution
     conv_result = np.array(np.hsplit(conv_matrix, n_images))
     conv_result = conv_result.reshape((n_images, out_channels, out_h, out_w))
 
     return conv_result
 
 
-# gradient_values coming from the backproagation in progress
-# X original input of the layer
 def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
+    """
+    Compute the NAIVE version of the backpropagation through a
+    convolutional layer
 
+    Parameters
+    ----------
+    X : ndarray
+        Inputs of the convolutional layer
+    kernel : ndarray
+        Kernel containing the weights of the convolutional layer
+    gradient_values : ndarray
+        The gradients that are flowing back from following layers
+        through the backpropagation algorithm
+    padding: int, optional
+        The possible padding applied to the inputs
+    stride: int, optional
+        The stride applied for the convolution operation
+
+    Returns
+    -------
+    dW : ndarray
+        The derivative computed WRT the weights
+    dX : ndarray
+        The derivative computed WRT the inputs
+    """
     output_channels = kernel.shape[0]
     input_channels = kernel.shape[1]
     kernel_h = kernel.shape[2]
     kernel_w = kernel.shape[3]
 
-    # Initializing dW with the correct shapes
+    # Initializing dW and dX with the expected shapes
     dW = np.zeros(kernel.shape)
-    dW_shape = dW.shape
-
     dX = np.zeros_like(X)
 
     # Cycle all the images in the batch
@@ -169,8 +223,6 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
                         for l in range(kernel_w):
                             for c in range(X.shape[1]):  # profondeur
                                 dxp[n, c, i, j] += doutp[n, f, i + k, j + l] * w_[f, c, k, l]
-    # Remove padding for dx
-    dxp_shape = dxp.shape
 
     dX = dxp[:, :, padding:dX.shape[2], padding:dX.shape[3]]
 
@@ -178,7 +230,31 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
 
 
 def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride=1):
+    """
+    Compute the FAST version of the backpropagation through a
+    convolutional layer
 
+    Parameters
+    ----------
+    inputs : ndarray
+        Inputs of the convolutional layer
+    kernel : ndarray
+        Kernel containing the weights of the convolutional layer
+    gradient_values : ndarray
+        The gradients that are flowing back from following layers
+        through the backpropagation algorithm
+    padding: int, optional
+        The possible padding applied to the inputs
+    stride: int, optional
+        The stride applied for the convolution operation
+
+    Returns
+    -------
+    dW : ndarray
+        The derivative computed WRT the weights
+    dX : ndarray
+        The derivative computed WRT the inputs
+    """
     # Get required variables from the kernel shape
     out_channels, in_channels, kernel_h, kernel_w = kernel.shape
 
@@ -187,24 +263,20 @@ def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride
 
     m, _, _, _ = inputs.shape
 
-    # Compute bias gradient.
-    #self.b['grad'] = np.sum(gradient_values, axis=(0, 2, 3))
     # Reshape dout properly.
-    w_col_shape = w_col.shape
-    gradient_values_shape = gradient_values.shape
     dout = gradient_values.reshape(gradient_values.shape[0] * gradient_values.shape[1], gradient_values.shape[2] * gradient_values.shape[3])
     dout = np.array(np.vsplit(dout, m))
     dout = np.concatenate(dout, axis=-1)
+
     # Perform matrix multiplication between reshaped dout and w_col to get dX_col.
-    w_col_shape = w_col.shape
-    dout_shape = dout.shape
     dX_col = w_col.T @ dout
+
     # Perform matrix multiplication between reshaped dout and X_col to get dW_col.
     dw_col = dout @ X_col.T
+
     # Reshape back to image (col2im).
-    a = inputs.shape
     dX = col2im(dX_col, inputs.shape, kernel_h, kernel_w, stride, padding)
-    a = dX.shape
+
     # Reshape dw_col into dw.
     dW = dw_col.reshape((dw_col.shape[0], in_channels, kernel_h, kernel_w))
 
