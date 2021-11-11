@@ -358,7 +358,7 @@ def main():
     test_images, test_labels = \
         dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
 
-    convolution_method_comparisons(train_images[:10], generate_kernel(), np.random.rand(10, 16, 30, 30))
+    #convolution_method_comparisons(train_images[:10], generate_kernel(), np.random.rand(10, 16, 30, 30))
 
     # ######################################################################
     # TRAIN + VALIDATION
