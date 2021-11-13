@@ -216,11 +216,39 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
                             # Some of the regions overlaps during the convolution operation.
                             dW[filter_position, :, :, :] += out
 
+    # What follows is an alternative method for computing the backpropagation, using
+    # directly the convolution operation. This has been commented for performance purposes.
+    # The computation of dW can be seen as the convolutio between the gradient values
+    # and the input image. However, it is necessary to:
+    # 1) Take each single image
+    # 2) From each single image, consider one channel at a time
+    # 3) Consider each channel in the gradient as a single kernel
+    # Finally, it is possible to compute the convolution between 2 and 3
+    # dW2 = np.zeros(kernel.shape)
+    # for filter_position in range(output_channels):
+    #     for img_position in range(gradient_values.shape[0]):
+    #         current_filter = gradient_values[img_position, filter_position, :, :]
+    #         k = np.zeros((1, 1, gradient_values.shape[2], gradient_values.shape[3]))
+    #         k[0, 0, :, :] = current_filter
+    #
+    #         img = np.zeros((1, 1, X.shape[2], X.shape[3]))
+    #
+    #         for ch in range(X.shape[1]):
+    #             print(ch)
+    #             img[0, 0, :, :] = X[img_position, ch, :, :]
+    #
+    #             res = convolve_2d(img, k)
+    #             res = res[0, 0, :, :]
+    #
+    #             dW2[filter_position, ch, :, :] += res
+    # sanity_check = np.isclose(dW, dW2).all()
+
     # Compute the gradients WRT the inputs (dX)
     # Init dX with the expected shape
     dX = np.zeros_like(X)
     # Pad if required
     dx_padded = np.pad(dX, ((0,), (0,), (padding,), (padding,)), 'constant')
+    # The gradient values must be padded in order to apply a full convolution
     gradient_values_padded = np.pad(gradient_values, ((0,), (0,), (kernel_w - 1,), (kernel_h - 1,)), 'constant')
 
     # Flip the kernel
@@ -230,19 +258,27 @@ def convolution_backprop(X, kernel, gradient_values, padding=0, stride=1):
             kernel_flipped[:, :, i, j] = kernel[:, :, kernel_h - i - 1, kernel_w - j - 1]
 
     # Cycle all the images in the batch
-    for n in range(X.shape[0]):
+    for n_images in range(X.shape[0]):
         # Cycle all the filters in the convolutional layer
-        for f in range(output_channels):
-            # Indices of the inputs that are involved (height)
-            for i in range(X.shape[2] + 2 * padding):
-                # Indices of the inputs that are involved (width)
-                for j in range(X.shape[3] + 2 * padding):
-                    for k in range(kernel_h):
-                        for l in range(kernel_w):
+        for filter_idx in range(output_channels):
+            # Input height indices
+            for input_h_idx in range(X.shape[2] + 2 * padding):
+                # Input width indices
+                for input_w_idx in range(X.shape[3] + 2 * padding):
+                    # Kernel height indices
+                    for kernel_h_idx in range(kernel_h):
+                        # Kernel width indices
+                        for kernel_w_idx in range(kernel_w):
                             # Cycle the channels
-                            for c in range(X.shape[1]):
-                                dx_padded[n, c, i, j] += gradient_values_padded[n, f, i + k, j + l] * kernel_flipped[f, c, k, l]
+                            for ch in range(X.shape[1]):
+                                # Now set the value of each cell in dx_padded.
+                                # Some will be zeros due to the 0 padding.
+                                # Multiply the padded gradient values with the flipped kernel values.
+                                dx_padded[n_images, ch, input_h_idx, input_w_idx] += \
+                                    gradient_values_padded[n_images, filter_idx, input_h_idx + kernel_h_idx, input_w_idx + kernel_w_idx] * kernel_flipped[
+                                    filter_idx, ch, kernel_h_idx, kernel_w_idx]
 
+    # Remove the padding from the final result if required
     dX = dx_padded[:, :, padding:dX.shape[2], padding:dX.shape[3]]
 
     return dW, dX
@@ -283,7 +319,8 @@ def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride
     m, _, _, _ = inputs.shape
 
     # Reshape dout properly.
-    dout = gradient_values.reshape(gradient_values.shape[0] * gradient_values.shape[1], gradient_values.shape[2] * gradient_values.shape[3])
+    dout = gradient_values.reshape(gradient_values.shape[0] * gradient_values.shape[1],
+                                   gradient_values.shape[2] * gradient_values.shape[3])
     dout = np.array(np.vsplit(dout, m))
     dout = np.concatenate(dout, axis=-1)
 

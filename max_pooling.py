@@ -136,14 +136,14 @@ def fast_max_pool(inputs, stride=2, kernel_h=2, kernel_w=2, padding=0):
 
     # Transform to matrix and reshape
     input_matrix = im2col(inputs, kernel_h, kernel_w, stride, padding)
+
     # Reshape in a way that allow us to have:
     # - the expected number of channels, that must be the same of the inputs
     # - the number of rows of the matrix true divided for the number of channels
     # - fill the matrix
     input_matrix = input_matrix.reshape(n_channels, input_matrix.shape[0] // n_channels, -1)
-    input_matrix_shape = input_matrix.shape
 
-    # Compute the output size
+    # Compute the output sizes
     out_h = int((input_h + 2 * padding - kernel_h) / stride) + 1
     out_w = int((input_w + 2 * padding - kernel_w) / stride) + 1
 
@@ -184,14 +184,20 @@ def fast_max_pool(inputs, stride=2, kernel_h=2, kernel_w=2, padding=0):
             -1
         )
     
-    So, in this example the shape will be (3, 4, 4)
+    So, in this example the shape will be (3, 4, 4), which is the expected output
+    after the maxpooling
     """
 
     # Perform the maxpool column wise
     max_pool_result = np.max(input_matrix, axis=1)
+
+    # Get the indices where the maximum values have been found
+    # NOTE: this is required during the backpropagation)
     pos_result = np.argmax(input_matrix, axis=1)
+
     # Add one dimension for managing the number of the images
     max_pool_result = np.array(np.hsplit(max_pool_result, n_images))
+
     # Reshape to the expected shape after the max pooling operation
     max_pool_result = max_pool_result.reshape(n_images, n_channels, out_h, out_w)
 
@@ -200,7 +206,7 @@ def fast_max_pool(inputs, stride=2, kernel_h=2, kernel_w=2, padding=0):
 
 def maxpool_backprop(gradient_values, pos_result, conv_shape):
     delta_conv = np.zeros(conv_shape)
-    delta_conv_shape = delta_conv.shape
+
     for image in range(len(pos_result)):
         indices = pos_result[image]
         for p in indices:
@@ -226,11 +232,6 @@ def fast_maxpool_backprop(gradient_values, conv_shape, pos_result, padding=0, st
 
     delta_conv = np.zeros(conv_shape)
     delta_conv_col = im2col(delta_conv, max_pool_size, max_pool_size, stride, padding)
-
-    # Those are indexes channel wise    n_channels = 3
-    # pos_result = [[2, 3, 0, 1, 2, 3, 0, 1], [2, 0, 2, 2, 2, 0, 2, 2], [2, 0, 0, 1, 2, 0, 0, 3]]
-    # pos_result = np.asarray(pos_result)delta_conv_col
-    # pos_result_shape = pos_result.shape
 
     row_coefficient = delta_conv_col.shape[0] // n_channels
     channels = np.arange(0, delta_conv_col.shape[0], row_coefficient)
