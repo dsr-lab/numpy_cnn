@@ -338,27 +338,31 @@ def __get_indices(input_shape, filter_h, filter_w, stride=1, pad=0):
     '''
 
     # Create the starting point for rows indices
-    # The goal is to create an array that has:
-    # - values that go from 0 to (filter_h - 1)
-    # - repeat the above values (filter_w - 1) times
-    #
-    # Example 1:
-    #   filter_h = filter_w = 2
-    #   a = np.arange(filter_h) = [0, 1]
-    #   np.repeat(a, filter_w-1) = [0, 0, 1, 1]
-    #
-    # Example 2:
-    #   filter_h = 3, filter_w = 3
-    #   a = np.arange(filter_h) = [0, 1, 2]
-    #   np.repeat(a, filter_w-1) = [0, 0, 1, 1, 2, 2]
+    '''
+    The goal is to create an array that has:
+    - values that go from 0 to (filter_h - 1)
+    - repeat the above values (filter_w - 1) times
+
+    Example 1:
+      filter_h = filter_w = 2
+      a = np.arange(filter_h) = [0, 1]
+      np.repeat(a, filter_w-1) = [0, 0, 1, 1]
+
+    Example 2:
+      filter_h = 3, filter_w = 3
+      a = np.arange(filter_h) = [0, 1, 2]
+      np.repeat(a, filter_w-1) = [0, 0, 1, 1, 2, 2]
+    '''
     row_indices_vector_0 = np.repeat(np.arange(filter_h), filter_w)
 
     # Repeat based on the number of channels
-    # Example:
-    #   filter_h = filter_w = 2, channels = 3
-    #   a = np.arange(filter_h) = [0, 1]
-    #   b = np.repeat(a) = [0, 0, 1, 1]
-    #   np.tile(b, channels) = [[0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
+    '''
+    Example:
+      filter_h = filter_w = 2, channels = 3
+      a = np.arange(filter_h) = [0, 1]
+      b = np.repeat(a) = [0, 0, 1, 1]
+      np.tile(b, channels) = [[0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
+    '''
     row_indices_vector_0 = np.tile(row_indices_vector_0, channels)
 
     # Create the vector that is used for summing 1 after each level of the

@@ -313,15 +313,63 @@ def fast_convolution_backprop(inputs, kernel, gradient_values, padding=0, stride
     # Get required variables from the kernel shape
     out_channels, in_channels, kernel_h, kernel_w = kernel.shape
 
+    # Get required variables from the inputs
+    n_inputs, _, _, _ = inputs.shape
+
+    # Transform the inputs in to plain matrices
     X_col = im2col(inputs, kernel_h, kernel_w, stride, padding)
+    # Flat the kernel
     w_col = kernel.reshape((out_channels, -1))
 
-    m, _, _, _ = inputs.shape
-
     # Reshape dout properly.
+    # (Number of images * Number of channels), (gradient height * gradient width)
     dout = gradient_values.reshape(gradient_values.shape[0] * gradient_values.shape[1],
                                    gradient_values.shape[2] * gradient_values.shape[3])
-    dout = np.array(np.vsplit(dout, m))
+
+    # When working with the flat version of the gradients, then we need to stack
+    # horizontally the images.
+    '''
+        Example:
+        The gradient have the shape(n_images=2, n_channels=2, height=2, width=3)
+        
+        [
+            [ # image 1
+                [[1, 2], [3, 4]],  # channel 1 
+                [[5, 6], [7, 8]]  # channel 2
+            ],
+            [ # image 2
+                [[9, 10], [11, 12]],  # channel 1 
+                [[13, 14], [15, 16]]  # channel 2
+            ]
+        ] 
+        
+        After the previus line of code we obtain:
+            [
+                [1, 2, 3, 4]        # img 1 - ch 1
+                [5, 6, 7, 8]        # img 1 - ch 2
+                [9, 10, 11, 12]     # img 2 - ch 1
+                [13, 14, 15, 16]    # img 2 - ch 2
+            ]
+        
+        Split WRT the number of images:
+            [   
+                [
+                    [1, 2, 3, 4],        
+                    [5, 6, 7, 8]
+                ],        
+                [
+                    [9, 10, 11, 12]     
+                    [13, 14, 15, 16]
+                ]    
+            ]
+        
+        Finally, stack horizontally:
+                [
+                    [1, 2, 3, 4, 9, 10, 11, 12],
+                    [5, 6, 7, 8, 13, 14, 15, 16]
+                ]
+    '''
+    dout = np.array(np.vsplit(dout, n_inputs))
     dout = np.concatenate(dout, axis=-1)
 
     # Perform matrix multiplication between reshaped dout and w_col to get dX_col.
