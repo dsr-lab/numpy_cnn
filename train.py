@@ -2,6 +2,7 @@ from cifar10 import Cifar10
 from dropout import *
 from flatten import flatten
 from mnist import Mnist
+from plots.plot import show_result_plots
 from relu import ReLU, dReLU
 from sanity_checks import *
 from softmax import *
@@ -358,7 +359,9 @@ def main():
     test_images, test_labels = \
         dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
 
-    #convolution_method_comparisons(train_images[:10], generate_kernel(), np.random.rand(10, 16, 30, 30))
+    show_result_plots()
+
+    # convolution_method_comparisons(train_images[:10], generate_kernel(), np.random.rand(10, 16, 30, 30))
 
     # ######################################################################
     # TRAIN + VALIDATION
@@ -367,7 +370,7 @@ def main():
                 validation_images, validation_labels, EPOCHS)
 
     # ######################################################################
-    # TRAIN
+    # TRAIN (on full train set)
     # ######################################################################
     # Load the number of epochs obtained after running the model on train
     # and validation set

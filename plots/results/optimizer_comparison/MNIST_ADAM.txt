@@ -1,0 +1,84 @@
+=== EPOCH: 0 ===
+TRAIN Accuracy: 0.903	TRAIN Loss: 0.329
+VALID Accuracy: 0.966	VALID Loss: 0.116
+Elapsed time (s): 460.934917625
+Better accuracy found: 0.9664. Saving weights...
+
+=== EPOCH: 1 ===
+TRAIN Accuracy: 0.975	TRAIN Loss: 0.085
+VALID Accuracy: 0.975	VALID Loss: 0.078
+Elapsed time (s): 444.86169997400003
+Better accuracy found: 0.9748. Saving weights...
+
+=== EPOCH: 2 ===
+TRAIN Accuracy: 0.983	TRAIN Loss: 0.059
+VALID Accuracy: 0.978	VALID Loss: 0.064
+Elapsed time (s): 438.61314571799994
+Better accuracy found: 0.9784. Saving weights...
+
+=== EPOCH: 3 ===
+TRAIN Accuracy: 0.986	TRAIN Loss: 0.047
+VALID Accuracy: 0.981	VALID Loss: 0.063
+Elapsed time (s): 434.88582176499995
+Better accuracy found: 0.981. Saving weights...
+
+=== EPOCH: 4 ===
+TRAIN Accuracy: 0.989	TRAIN Loss: 0.039
+VALID Accuracy: 0.982	VALID Loss: 0.062
+Elapsed time (s): 437.69550695700013
+Better accuracy found: 0.9822. Saving weights...
+
+=== EPOCH: 5 ===
+TRAIN Accuracy: 0.990	TRAIN Loss: 0.032
+VALID Accuracy: 0.982	VALID Loss: 0.060
+Elapsed time (s): 438.26966116899985
+Better accuracy found: 0.9824. Saving weights...
+
+=== EPOCH: 6 ===
+TRAIN Accuracy: 0.992	TRAIN Loss: 0.027
+VALID Accuracy: 0.982	VALID Loss: 0.059
+Elapsed time (s): 436.26675755299993
+
+=== EPOCH: 7 ===
+TRAIN Accuracy: 0.994	TRAIN Loss: 0.022
+VALID Accuracy: 0.983	VALID Loss: 0.067
+Elapsed time (s): 438.1203246670002
+Better accuracy found: 0.9826. Saving weights...
+
+=== EPOCH: 8 ===
+TRAIN Accuracy: 0.995	TRAIN Loss: 0.018
+VALID Accuracy: 0.982	VALID Loss: 0.074
+Elapsed time (s): 438.9037074170001
+
+=== EPOCH: 9 ===
+TRAIN Accuracy: 0.996	TRAIN Loss: 0.015
+VALID Accuracy: 0.982	VALID Loss: 0.074
+Elapsed time (s): 435.9804755389996
+
+=== EPOCH: 10 ===
+TRAIN Accuracy: 0.996	TRAIN Loss: 0.013
+VALID Accuracy: 0.981	VALID Loss: 0.078
+Elapsed time (s): 437.2007496490005
+
+=== EPOCH: 11 ===
+TRAIN Accuracy: 0.997	TRAIN Loss: 0.011
+VALID Accuracy: 0.979	VALID Loss: 0.084
+Elapsed time (s): 435.8908781709997
+
+=== EPOCH: 12 ===
+TRAIN Accuracy: 0.997	TRAIN Loss: 0.010
+VALID Accuracy: 0.983	VALID Loss: 0.075
+Elapsed time (s): 434.4190577059999
+Better accuracy found: 0.9828. Saving weights...
+
+=== EPOCH: 13 ===
+TRAIN Accuracy: 0.997	TRAIN Loss: 0.009
+VALID Accuracy: 0.981	VALID Loss: 0.079
+Elapsed time (s): 434.2256157699994
+
+=== EPOCH: 14 ===
+TRAIN Accuracy: 0.998	TRAIN Loss: 0.007
+VALID Accuracy: 0.981	VALID Loss: 0.087
+Elapsed time (s): 434.80920333500035
+
+

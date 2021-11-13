@@ -1,0 +1,184 @@
+##############################
+# TRAIN MODEL
+##############################
+=== EPOCH 0 ===
+Epoch 0 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.303
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 0 completed in (s): 6.783459510000002
+
+(Higher accuracy found. Saving weights...)
+
+=== EPOCH 1 ===
+Epoch 1 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.303
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 1 completed in (s): 6.804213288
+
+=== EPOCH 2 ===
+Epoch 2 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.303
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 2 completed in (s): 7.113412981
+
+=== EPOCH 3 ===
+Epoch 3 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.303
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 3 completed in (s): 7.633463072999998
+
+=== EPOCH 4 ===
+Epoch 4 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 4 completed in (s): 7.465736081999999
+
+=== EPOCH 5 ===
+Epoch 5 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 5 completed in (s): 7.501447843000001
+
+=== EPOCH 6 ===
+Epoch 6 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 6 completed in (s): 7.216629185000002
+
+=== EPOCH 7 ===
+Epoch 7 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 7 completed in (s): 6.954483636999996
+
+=== EPOCH 8 ===
+Epoch 8 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 8 completed in (s): 8.535212380000004
+
+=== EPOCH 9 ===
+Epoch 9 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.298
+Epoch 9 completed in (s): 7.769746065999996
+
+=== EPOCH 10 ===
+Epoch 10 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 10 completed in (s): 7.665011887999995
+
+=== EPOCH 11 ===
+Epoch 11 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 11 completed in (s): 7.2461567830000035
+
+=== EPOCH 12 ===
+Epoch 12 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 12 completed in (s): 6.848229001000007
+
+=== EPOCH 13 ===
+Epoch 13 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 13 completed in (s): 7.093669890000001
+
+=== EPOCH 14 ===
+Epoch 14 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 14 completed in (s): 7.304862686999996
+
+=== EPOCH 15 ===
+Epoch 15 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 15 completed in (s): 7.2584404579999955
+
+=== EPOCH 16 ===
+Epoch 16 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 16 completed in (s): 6.926159136999999
+
+=== EPOCH 17 ===
+Epoch 17 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 17 completed in (s): 6.834815945000003
+
+=== EPOCH 18 ===
+Epoch 18 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 18 completed in (s): 7.48743626800001
+
+=== EPOCH 19 ===
+Epoch 19 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 19 completed in (s): 6.925505206999986
+
+=== EPOCH 20 ===
+Epoch 20 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 20 completed in (s): 6.961136763000013
+
+=== EPOCH 21 ===
+Epoch 21 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 21 completed in (s): 8.200219681999982
+
+=== EPOCH 22 ===
+Epoch 22 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 22 completed in (s): 6.805899179999983
+
+=== EPOCH 23 ===
+Epoch 23 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 23 completed in (s): 6.749817129999997
+
+=== EPOCH 24 ===
+Epoch 24 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 24 completed in (s): 6.937391184000006
+
+=== EPOCH 25 ===
+Epoch 25 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 25 completed in (s): 6.998303368000023
+
+=== EPOCH 26 ===
+Epoch 26 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 26 completed in (s): 7.385588431000002
+
+=== EPOCH 27 ===
+Epoch 27 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 27 completed in (s): 7.938251069999978
+
+=== EPOCH 28 ===
+Epoch 28 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 28 completed in (s): 7.276639254000003
+
+=== EPOCH 29 ===
+Epoch 29 started...
+	TRAIN Accuracy: 0.130	TRAIN Loss: 2.302
+	VALID Accuracy: 0.150	VALID Loss: 2.297
+Epoch 29 completed in (s): 7.484867250999997

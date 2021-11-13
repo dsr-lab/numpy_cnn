@@ -2,11 +2,13 @@ import os
 
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import numpy as np
+from PIL import Image
 
 from config import *
 
-matplotlib.use("TkAgg")
+#matplotlib.use("TkAgg")
 
 # ################################################################################
 # METRICS
@@ -478,3 +480,4 @@ def show_image(image, title=None):
 
     if title is not None:
         plt.title(title)
+

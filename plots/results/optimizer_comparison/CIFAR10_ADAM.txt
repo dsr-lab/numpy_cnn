@@ -1,0 +1,78 @@
+- HE
+- NEW TRAINING
+- TRAIN+VALIDATION
+
+=== EPOCH: 0 ===
+TRAIN Accuracy: 0.419	TRAIN Loss: 1.651
+VALID Accuracy: 0.512	VALID Loss: 1.370
+Elapsed time (s): 616.509239598
+
+=== EPOCH: 1 ===
+TRAIN Accuracy: 0.565	TRAIN Loss: 1.244
+VALID Accuracy: 0.571	VALID Loss: 1.209
+Elapsed time (s): 611.8983881060001
+
+=== EPOCH: 2 ===
+TRAIN Accuracy: 0.617	TRAIN Loss: 1.100
+VALID Accuracy: 0.605	VALID Loss: 1.129
+Elapsed time (s): 617.5670105710001
+
+=== EPOCH: 3 ===
+TRAIN Accuracy: 0.646	TRAIN Loss: 1.019
+VALID Accuracy: 0.623	VALID Loss: 1.091
+Elapsed time (s): 618.802126393
+
+=== EPOCH: 4 ===
+TRAIN Accuracy: 0.666	TRAIN Loss: 0.965
+VALID Accuracy: 0.629	VALID Loss: 1.075
+Elapsed time (s): 623.2805728929998
+
+=== EPOCH: 5 ===
+TRAIN Accuracy: 0.680	TRAIN Loss: 0.922
+VALID Accuracy: 0.630	VALID Loss: 1.074
+Elapsed time (s): 621.590462782
+
+=== EPOCH: 6 ===
+TRAIN Accuracy: 0.693	TRAIN Loss: 0.887
+VALID Accuracy: 0.629	VALID Loss: 1.076
+Elapsed time (s): 621.2278784989999
+
+=== EPOCH: 7 ===
+TRAIN Accuracy: 0.705	TRAIN Loss: 0.857
+VALID Accuracy: 0.630	VALID Loss: 1.082
+Elapsed time (s): 621.9186091500005
+
+=== EPOCH: 8 ===
+TRAIN Accuracy: 0.715	TRAIN Loss: 0.828
+VALID Accuracy: 0.628	VALID Loss: 1.098
+Elapsed time (s): 629.3438095450001
+
+=== EPOCH: 9 ===
+TRAIN Accuracy: 0.723	TRAIN Loss: 0.802
+VALID Accuracy: 0.633	VALID Loss: 1.113
+Elapsed time (s): 662.1260358609998
+
+=== EPOCH: 10 ===
+TRAIN Accuracy: 0.731	TRAIN Loss: 0.779
+VALID Accuracy: 0.631	VALID Loss: 1.133
+Elapsed time (s): 665.5901946799995
+
+=== EPOCH: 11 ===
+TRAIN Accuracy: 0.738	TRAIN Loss: 0.756
+VALID Accuracy: 0.630	VALID Loss: 1.147
+Elapsed time (s): 704.7424420859998
+
+=== EPOCH: 12 ===
+TRAIN Accuracy: 0.745	TRAIN Loss: 0.737
+VALID Accuracy: 0.623	VALID Loss: 1.173
+Elapsed time (s): 675.0967634110002
+
+=== EPOCH: 13 ===
+TRAIN Accuracy: 0.751	TRAIN Loss: 0.718
+VALID Accuracy: 0.624	VALID Loss: 1.189
+Elapsed time (s): 705.7879859379991
+
+=== EPOCH: 14 ===
+TRAIN Accuracy: 0.758	TRAIN Loss: 0.701
+VALID Accuracy: 0.619	VALID Loss: 1.209
+Elapsed time (s): 711.5384397199996

@@ -52,7 +52,7 @@ class Cifar10:
             _, _ = urllib.request.urlretrieve(url,
                                               filename=tar_path,
                                               reporthook=self.__download_progress)
-            print('Download complete')
+            print('\nDownload complete')
 
             # Extract the downloaded file
             with tarfile.open(tar_path) as tar_object:
@@ -63,12 +63,14 @@ class Cifar10:
         # (e.g.: readme.html).
         # Create a list of files that must be processed for
         # creating the final dataset.
-        expected_files = ['cifar-10-batches-py/data_batch_1',
-                          'cifar-10-batches-py/data_batch_2',
-                          'cifar-10-batches-py/data_batch_3',
-                          'cifar-10-batches-py/data_batch_4',
-                          'cifar-10-batches-py/data_batch_5',
-                          'cifar-10-batches-py/test_batch']
+        expected_files = [
+            os.path.join('cifar-10-batches-py', 'data_batch_1'),
+            os.path.join('cifar-10-batches-py', 'data_batch_2'),
+            os.path.join('cifar-10-batches-py', 'data_batch_3'),
+            os.path.join('cifar-10-batches-py', 'data_batch_4'),
+            os.path.join('cifar-10-batches-py', 'data_batch_5'),
+            os.path.join('cifar-10-batches-py', 'test_batch')
+        ]
         # There are 60000 images. Each image is 3x32x32 = 3072
         # There are 60000 labels
         images = np.zeros(shape=(60000, 3, 32, 32))
@@ -83,8 +85,8 @@ class Cifar10:
                 file_images = dictionary.get(b'data')
                 file_labels = dictionary.get(b'labels')
 
-                #file_images = file_images / 255
-                #file_images = (file_images - 0.5) / 0.5
+                # file_images = file_images / 255
+                # file_images = (file_images - 0.5) / 0.5
                 file_images = file_images.reshape(10000, 3, 32, 32)
 
                 images[idx * 10000:10000 * (idx + 1)] = file_images
@@ -93,11 +95,12 @@ class Cifar10:
         self.train_images, self.test_images = images[:50000], images[50000:]
         self.train_labels, self.test_labels = labels[:50000], labels[50000:]
 
-        #unique, counts = np.unique(self.train_labels, return_counts=True)
-        #a = dict(zip(unique, counts))
+        # Check if class are balanced
+        # unique, counts = np.unique(self.train_labels, return_counts=True)
+        # a = dict(zip(unique, counts))
 
         # Shuffle the train set
-        #np.random.seed(12)
+        # np.random.seed(12)
         permutation_indices = np.random.permutation(len(self.train_images))
         self.train_images = self.train_images[permutation_indices]
         self.train_labels = self.train_labels[permutation_indices]
@@ -126,12 +129,12 @@ class Cifar10:
 
     def get_small_datasets(self):
         return \
-            self.train_images[:500], self.train_labels[:500],  \
+            self.train_images[:500], self.train_labels[:500], \
             self.validation_images[:100], self.validation_labels[:100], \
             self.test_images[:100], self.test_labels[:100]
 
     def get_datasets(self):
         return \
-            self.train_images, self.train_labels,  \
+            self.train_images, self.train_labels, \
             self.validation_images, self.validation_labels, \
             self.test_images, self.test_labels
