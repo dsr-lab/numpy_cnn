@@ -210,7 +210,7 @@ def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3
 # ################################################################################
 # FAST CONVOLUTIONS AND MAX POOL UTILITY METHODS
 # ################################################################################
-def im2col(images, filter_h, filter_w, stride=1, pad=0):
+def im2col(images, filter_h, filter_w, stride=1, padding=0):
     """
     Transform images into matrices
 
@@ -222,7 +222,7 @@ def im2col(images, filter_h, filter_w, stride=1, pad=0):
         filter height
     filter_w : int
         filter width
-    pad: int, optional
+    padding: int, optional
         The possible padding applied to the inputs
     stride: int, optional
         The stride applied for the convolution operation
@@ -233,8 +233,8 @@ def im2col(images, filter_h, filter_w, stride=1, pad=0):
         Array containing the images in plain matrix form
     """
     # Apply the padding
-    padded_images = np.pad(images, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
-    row_indices, col_indices, channel_matrix = __get_indices(images.shape, filter_h, filter_w, stride, pad)
+    padded_images = np.pad(images, ((0, 0), (0, 0), (padding, padding), (padding, padding)), mode='constant')
+    row_indices, col_indices, channel_matrix = __get_indices(images.shape, filter_h, filter_w, stride, padding)
 
     # Get the image values at the positions indicated by the indices for creating the final matrix.
     image_matrices = padded_images[:, channel_matrix, row_indices, col_indices]
@@ -246,30 +246,52 @@ def im2col(images, filter_h, filter_w, stride=1, pad=0):
     return image_matrices
 
 
-def col2im(dX_col, X_shape, HF, WF, stride, pad):
+def col2im(dx_col, x_shape, filter_h, filter_w, stride=1, padding=0):
+    """
+    Transform images into matrices
 
-    a = X_shape
+    Parameters
+    ----------
+    dx_col : ndarray
+        Derivative of the gradients WRT the input
+    x_shape : ndarray
+        Original input shape
+    filter_h : int
+        filter height
+    filter_w : int
+        filter width
+    padding: int, optional
+        The possible padding applied to the inputs
+    stride: int, optional
+        The stride applied for the convolution operation
 
-    # Get input size
-    N, D, H, W = X_shape
+    Returns
+    -------
+    image : ndarray
+        Array containing the inputs converted back to the original shape
+    """
+    # Get required variables from the input shape
+    n_images, n_channels, input_h, input_w = x_shape
+
     # Add padding if needed.
-    H_padded, W_padded = H + 2 * pad, W + 2 * pad
-    X_padded = np.zeros((N, D, H_padded, W_padded))
+    input_h_padded, input_w_padded = input_h + 2 * padding, input_w + 2 * padding
+    x_padded = np.zeros((n_images, n_channels, input_h_padded, input_w_padded))
 
     # Index matrices, necessary to transform our input image into a matrix.
-    i, j, d = __get_indices(X_shape, HF, WF, stride, pad)
-    # Retrieve batch dimension by spliting dX_col N times: (X, Y) => (N, X, Y)
-    dX_col_reshaped = np.array(np.hsplit(dX_col, N))
+    i, j, d = __get_indices(x_shape, filter_h, filter_w, stride, padding)
+
+    # Retrieve batch dimension by spliting dx_col n_images times: (X, Y) => (n_images, X, Y)
+    dx_col_reshaped = np.array(np.hsplit(dx_col, n_images))
+    
     # Reshape our matrix back to image.
     # slice(None) is used to produce the [::] effect which means "for every elements".
-    np.add.at(X_padded, (slice(None), d, i, j), dX_col_reshaped)
-    X_padded_shape = X_padded.shape
+    np.add.at(x_padded, (slice(None), d, i, j), dx_col_reshaped)
+
     # Remove padding from new image if needed.
-    if pad == 0:
-        return X_padded
-    elif type(pad) is int:
-        # return X_padded[pad:-pad, pad:-pad, :, :]
-        return X_padded[:, :, pad:-pad, pad:-pad]
+    if padding == 0:
+        return x_padded
+    elif type(padding) is int:
+        return x_padded[:, :, padding:-padding, padding:-padding]
 
 
 def __get_indices(input_shape, filter_h, filter_w, stride=1, pad=0):
