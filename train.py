@@ -2,6 +2,7 @@ from cifar10 import Cifar10
 from dropout import *
 from flatten import flatten
 from mnist import Mnist
+from plots.correct_incorrect_plot import correct_incorrect_plot
 from plots.plot import show_result_plots
 from relu import ReLU, dReLU
 from sanity_checks import *
@@ -313,7 +314,7 @@ def train_model(train_images, train_labels,
     print()
 
 
-def test_model(weights_path, test_images, test_labels):
+def test_model(weights_path, test_images, test_labels, dataset_classes_desc):
     print('##############################')
     print('# TEST MODEL')
     print('##############################')
@@ -330,6 +331,10 @@ def test_model(weights_path, test_images, test_labels):
     test_batch_acc = 0
     test_samples = 0
 
+    # Save position of correct and incorrect
+    correct_predictions = {}
+    incorrect_predictions = {}
+
     for idx, input_data in enumerate(test_images_batches):
         test_samples += input_data.shape[0]
 
@@ -340,12 +345,25 @@ def test_model(weights_path, test_images, test_labels):
             position = input_labels[i]
             input_labels_one_hot_encoded[i, position] = 1
 
-        scores, cache, loss, acc = forward(input_data, input_labels, input_labels_one_hot_encoded, weights)
+        scores, _, loss, acc = forward(input_data, input_labels, input_labels_one_hot_encoded, weights)
         test_batch_loss += loss
         test_batch_acc += acc
 
+        correct_predictions[idx], incorrect_predictions[idx] = single_batch_sample(scores, input_labels)
+
     print('TEST Accuracy: {:.3f}\tTEST Loss: {:.3f}'.
           format(test_batch_acc / test_samples, test_batch_loss / test_samples))
+
+    correct = all_batches_sample(correct_predictions, test_images_batches, test_images_labels)
+    incorrect = all_batches_sample(incorrect_predictions, test_images_batches, test_images_labels)
+
+    correct_incorrect_plot(
+        correct,
+        incorrect,
+        dataset_classes_desc
+    )
+
+    print()
 
 
 def main():
@@ -359,34 +377,34 @@ def main():
     test_images, test_labels = \
         dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
 
-    show_result_plots()
+    #show_result_plots()
 
     # convolution_method_comparisons(train_images[:10], generate_kernel(), np.random.rand(10, 16, 30, 30))
 
     # ######################################################################
     # TRAIN + VALIDATION
     # ######################################################################
-    train_model(train_images, train_labels,
-                validation_images, validation_labels, EPOCHS)
+    # train_model(train_images, train_labels,
+    #             validation_images, validation_labels, EPOCHS)
 
     # ######################################################################
     # TRAIN (on full train set)
     # ######################################################################
     # Load the number of epochs obtained after running the model on train
     # and validation set
-    _, epochs = load_weights(VALIDATION_WEIGHTS_PATH)
-
-    print(f'Best epochs loaded from file system: {epochs[0] - 1}')
-    print()
-
-    train_model(np.concatenate((train_images, validation_images)),
-                np.concatenate((train_labels, validation_labels)),
-                None, None, epochs[0])
+    # _, epochs = load_weights(VALIDATION_WEIGHTS_PATH)
+    #
+    # print(f'Best epochs loaded from file system: {epochs[0] - 1}')
+    # print()
+    #
+    # train_model(np.concatenate((train_images, validation_images)),
+    #             np.concatenate((train_labels, validation_labels)),
+    #             None, None, epochs[0])
 
     # ######################################################################
     # TEST
     # ######################################################################
-    test_model(TRAIN_WEIGHTS_PATH, test_images, test_labels)
+    test_model(TRAIN_WEIGHTS_PATH, test_images, test_labels, dataset.classes)
 
     print()
 

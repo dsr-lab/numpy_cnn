@@ -15,9 +15,6 @@ def show_naive_fast_comparison_plots(naive_file_path, fast_file_path):
     _, _, _, _, _, naive_time = get_train_val_values(naive_file_path)
     _, _, _, _, _, fast_time = get_train_val_values(fast_file_path)
 
-    a = naive_time[0]
-    b = fast_time[0]
-
     x = np.arange(2)
     barlist = ax1.bar(x, height=[naive_time[0], fast_time[0]], width=0.5)
     barlist[1].set_color('r')

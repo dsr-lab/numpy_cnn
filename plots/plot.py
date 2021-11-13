@@ -46,10 +46,12 @@ def __naive_vs_fast_comparison():
 
     print()
 
+
 def show_result_plots():
-    # __optimizer_comparison()
-    # __initializer_comparison()
+    __optimizer_comparison()
+    __initializer_comparison()
     __naive_vs_fast_comparison()
 
     print()
+
 

@@ -8,7 +8,9 @@ from PIL import Image
 
 from config import *
 
-#matplotlib.use("TkAgg")
+
+# matplotlib.use("TkAgg")
+
 
 # ################################################################################
 # METRICS
@@ -434,50 +436,89 @@ def __get_indices(input_shape, filter_h, filter_w, stride=1, pad=0):
 
 
 # ################################################################################
-# PLOTTING
+# SAMPLING
 # ################################################################################
-def show_gray_scale_image(image, title=None):
-    # initially (3, 32, 32), pyplot expects (32, 32, 3)
-    #plt.imshow(np.transpose(image, (1, 2, 0)))
-    image = image.squeeze(axis=0)
-    plt.imshow(image, cmap='gray')
-    plt.axis('off')
-    plt.show(block=True)
+def single_batch_sample(scores, labels):
+    predictions = np.argmax(scores, axis=1)
+    mask = labels == predictions
 
-    if title is not None:
-        plt.title(title)
+    # Max number of images to extract
+    n_samples = 5
+
+    # Randomly pick some correctly classified samples
+    correct_prediction_indices = np.where(mask == True)
+    n_correct = len(correct_prediction_indices[0])
+
+    correct_prediction_indices = np.random.choice(
+        correct_prediction_indices[0],
+        n_samples if n_correct >= n_samples else n_correct,
+        replace=False  # replace=True means with replacement (e.g.: the same sample could be chosen more than once)
+    )
+
+    # Randomly pick some incorrectly classified samples
+    incorrect_prediction_indices = np.where(mask == False)
+    n_incorrect = len(incorrect_prediction_indices[0])
+
+    incorrect_prediction_indices = np.random.choice(
+        incorrect_prediction_indices[0],
+        n_samples if n_incorrect >= n_samples else n_incorrect,
+        replace=False)
+
+    # Save results in dictionaries
+    correct = {
+        'indices': correct_prediction_indices,
+        'true_labels': labels[correct_prediction_indices],
+        'predicted_labels': predictions[correct_prediction_indices],
+    }
+
+    incorrect = {
+        'indices': incorrect_prediction_indices,
+        'true_labels': labels[incorrect_prediction_indices],
+        'predicted_labels': predictions[incorrect_prediction_indices]
+    }
+
+    return correct, incorrect
 
 
-def show_first_layer(image, title):
-    fig = plt.figure(figsize=(10, 10))
-    columns = image.shape[0]
-    rows = 1
-    for i in range(0, columns * rows):
-        fig.add_subplot(rows, columns, i+1)
-        img = normalize_image_0_to_1(image[i])
-        img = np.transpose(img, (1, 2, 0))
-        plt.imshow(np.transpose(img, (1, 2, 0)))
-    plt.savefig(f'test/{title}.png')
-    plt.close(fig)
-    #plt.show(block=True)
+def all_batches_sample(predictions, test_images_batches, test_images_labels):
 
+    # Number of images to extract
+    n_images = 5
+    # Maximum number of attempts.
+    # Useful on MNIST, where the accuracy is very high and mistakes seldomly happen.
+    n_attempts = 100
 
-def normalize_image_0_to_1(image):
-    if image.min() < 0:
-        return np.interp(image, (image.min(), image.max()), (0, 1))
-    return image
+    # Randomly take images from results
+    samples = []
+    for i in range(n_attempts):
+        # Take a batch index
+        batch_idx = np.random.randint(0, len(predictions))
+        # Take a random image
+        if len(predictions[batch_idx]['indices']) > 0:
+            # Randomly pick an index inside the array of indices
+            img_idx_pos = np.random.randint(0, len(predictions[batch_idx]['indices']))
 
+            # Save the predicted label
+            predicted_label = predictions[batch_idx]['predicted_labels'][img_idx_pos]
 
-def show_image(image, title=None):
+            # Save the image index
+            img_idx = predictions[batch_idx]['indices'][img_idx_pos]
 
-    image = normalize_image_0_to_1(image)
-    # npimg = image.numpy()
+            # Add the sample if not already in the array
+            if (batch_idx, img_idx, predicted_label) not in samples:
+                samples.append((batch_idx, img_idx, predicted_label))
 
-    # initially (3, 32, 32), pyplot expects (32, 32, 3)
-    plt.imshow(np.transpose(image, (1, 2, 0)))
-    plt.axis('off')
-    plt.show(block=True)
+        # Interrupt if the number of images reached n_images
+        if len(samples) == n_images:
+            break
 
-    if title is not None:
-        plt.title(title)
+    # Return values
+    images = []
+    true_labels = []
+    predicted_labels = []
+    for batch, img_idx, predicted_label in samples:
+        images.append(test_images_batches[batch][img_idx])
+        true_labels.append(test_images_labels[batch][img_idx])
+        predicted_labels.append(predicted_label)
 
+    return images, true_labels, predicted_labels
