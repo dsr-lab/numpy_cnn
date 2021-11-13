@@ -246,14 +246,14 @@ def im2col(images, filter_h, filter_w, stride=1, padding=0):
     return image_matrices
 
 
-def col2im(dx_col, x_shape, filter_h, filter_w, stride=1, padding=0):
+def col2im(x_col, x_shape, filter_h, filter_w, stride=1, padding=0):
     """
     Transform images into matrices
 
     Parameters
     ----------
-    dx_col : ndarray
-        Derivative of the gradients WRT the input
+    x_col : ndarray
+        Input passed as a 2d matrix (e.g.: computed by the im2col function)
     x_shape : ndarray
         Original input shape
     filter_h : int
@@ -275,17 +275,27 @@ def col2im(dx_col, x_shape, filter_h, filter_w, stride=1, padding=0):
 
     # Add padding if needed.
     input_h_padded, input_w_padded = input_h + 2 * padding, input_w + 2 * padding
+
+    # Init the
     x_padded = np.zeros((n_images, n_channels, input_h_padded, input_w_padded))
 
     # Index matrices, necessary to transform our input image into a matrix.
-    i, j, d = __get_indices(x_shape, filter_h, filter_w, stride, padding)
+    row_indices, col_indices, ch_indices = __get_indices(x_shape, filter_h, filter_w, stride, padding)
 
-    # Retrieve batch dimension by spliting dx_col n_images times: (X, Y) => (n_images, X, Y)
-    dx_col_reshaped = np.array(np.hsplit(dx_col, n_images))
-    
+    # Add the number of images dimension by spliting dx_col n_images times
+    '''
+        Example: 
+            1) dx_col has a shape of a 2d matrix (12, 9)
+            
+            2) We know that n_images = 2
+            
+            3) We want to obtain (2, 12, 9)
+    '''
+    x_col_reshaped = np.array(np.hsplit(x_col, n_images))
+
     # Reshape our matrix back to image.
-    # slice(None) is used to produce the [::] effect which means "for every elements".
-    np.add.at(x_padded, (slice(None), d, i, j), dx_col_reshaped)
+    # NOTE: slice(None) is used to produce the [::] effect which means 'for every elements'.
+    np.add.at(x_padded, (slice(None), ch_indices, row_indices, col_indices), x_col_reshaped)
 
     # Remove padding from new image if needed.
     if padding == 0:
@@ -415,7 +425,7 @@ def __get_indices(input_shape, filter_h, filter_w, stride=1, pad=0):
 
     # Matrix required for considering different channels while processing
     # the row_indices and column_indices variables.
-    # This is used for reshaping to the final expected output, which should not be a matrix.
+    # This is used for reshaping to the final expected output, which should not be a 2d matrix.
     channel_matrix = np.repeat(np.arange(channels), filter_h * filter_w).reshape(-1, 1)
 
     return row_indices, column_indices, channel_matrix
