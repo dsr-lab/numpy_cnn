@@ -6,6 +6,7 @@ import numpy as np
 
 def get_train_val_values(file_name, file_ext='.txt'):
     epochs = []
+    epochs_time = []
     train_accuracy = []
     validation_accuracy = []
 
@@ -31,8 +32,12 @@ def get_train_val_values(file_name, file_ext='.txt'):
 
                 validation_accuracy.append(float(accuracy))
                 validation_loss.append(float(loss))
+            elif 'completed in (s):' in line:
+                time = re.search('completed in \(s\):(.*)', line).group(1).strip()
 
-    return train_accuracy, train_loss, validation_accuracy, validation_loss, epochs
+                epochs_time.append(float(time))
+
+    return train_accuracy, train_loss, validation_accuracy, validation_loss, epochs, epochs_time
 
 
 def get_file_name_from_path(path):

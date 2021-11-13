@@ -2,7 +2,7 @@ from plots.plot_utils import *
 
 
 def __create_subplot(ax1, x, show_title=True):
-    train_accuracy, train_loss, validation_accuracy, validation_loss, epochs = x
+    train_accuracy, train_loss, validation_accuracy, validation_loss, epochs, _ = x
 
     if show_title:
         ax1[0].set_title('ACCURACY')

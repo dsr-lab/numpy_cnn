@@ -1,6 +1,7 @@
 import os
 
 from plots.initializer_comparison_plot import show_initializer_comparison_plots
+from plots.naive_fast_comparison_plot import show_naive_fast_comparison_plots
 from plots.optimizer_comparison_plot import show_optimizer_comparison_plots
 
 
@@ -35,9 +36,20 @@ def __initializer_comparison():
     )
 
 
+def __naive_vs_fast_comparison():
+    base_path = os.path.join('plots', 'results', 'naive_vs_fast')
+
+    naive = os.path.join(base_path, 'CIFAR10_CONV_NAIVE_1E')
+    fast = os.path.join(base_path, 'CIFAR10_CONV_FAST_1E')
+
+    show_naive_fast_comparison_plots(naive, fast)
+
+    print()
+
 def show_result_plots():
-    __optimizer_comparison()
-    __initializer_comparison()
+    # __optimizer_comparison()
+    # __initializer_comparison()
+    __naive_vs_fast_comparison()
 
     print()
 

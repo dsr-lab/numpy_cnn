@@ -3,8 +3,8 @@ from plots.plot_utils import *
 
 def __create_subplot(ax1, he, xavier, show_title=True):
 
-    train_accuracy_he, train_loss_he, _, _, epochs = he
-    train_accuracy_xavier, train_loss_xavier, _, _, epochs = xavier
+    train_accuracy_he, train_loss_he, _, _, epochs, _ = he
+    train_accuracy_xavier, train_loss_xavier, _, _, epochs, _ = xavier
 
     if show_title:
         ax1[0].set_title('ACCURACY')

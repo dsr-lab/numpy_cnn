@@ -1,0 +1,10 @@
+##############################
+# TRAIN MODEL
+##############################
+=== EPOCH 0 ===
+Epoch 0 started...
+	TRAIN Accuracy: 0.142	TRAIN Loss: 3.416
+	VALID Accuracy: 0.160	VALID Loss: 3.167
+Epoch 0 completed in (s): 7.5914748849999985
+
+(Higher accuracy found. Saving weights...)
