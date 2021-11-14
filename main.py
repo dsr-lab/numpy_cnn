@@ -15,6 +15,7 @@ def main():
     test_images, test_labels = \
         dataset.get_small_datasets() if TRAIN_SMALL_DATASET else dataset.get_datasets()
 
+    # Show an overview of the architecture used
     show_architecture()
 
     # TRAIN + VALIDATION
