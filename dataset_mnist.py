@@ -3,6 +3,9 @@ from utils import *
 
 
 class Mnist:
+    """
+    Class that provides access to MNIST dataset
+    """
 
     def __init__(self):
 
@@ -47,9 +50,6 @@ class Mnist:
 
         self.train_images = self.train_images[:55000]
         self.train_labels = self.train_labels[:55000]
-
-        #print(self.validation_labels[0])
-        #show_gray_scale_image(self.validation_images[0])
 
     def get_small_datasets(self):
         return \

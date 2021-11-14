@@ -56,6 +56,33 @@ def max_pool(input_images, stride=2, filter_h=2, filter_w=2, padding=0):
 
 
 def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w):
+    """
+    Method that performs the convolution operation on a single image.
+    Used only with the NAIVE version of the maxpooling operation.
+
+    Parameters
+    ----------
+    image : ndarray
+        Inputs of the layer
+    output_h: int
+        Expected output height
+    output_w: int
+        Expected output width
+    filter_h : int, optional
+        The height of the kernel
+    filter_w : int, optional
+        The width of the kernel
+    stride: int, optional
+        The stride applied
+
+    Returns
+    -------
+    maxpool_result : ndarray
+        The result of the computed maxpooling operation
+    pos_vector : ndarray
+        The indices where the maxpooling operation has been applied
+    """
+
     # Init the maxpool matrix result with zero values
     maxpool_result = np.zeros((
         image.shape[0],
@@ -205,6 +232,25 @@ def fast_max_pool(inputs, stride=2, kernel_h=2, kernel_w=2, padding=0):
 
 
 def maxpool_backprop(gradient_values, pos_result, conv_shape):
+    """
+    Compute the NAIVE backpropagation version through maxpooling layer
+
+    Parameters
+    ----------
+    gradient_values : ndarray
+        Gradient coming from the following layer in the network
+    pos_result : int, optional
+        The position where the maxpooling was applied during the forward pass
+    conv_shape : int, optional
+        The expected output shape
+
+
+    Returns
+    -------
+    delta_conv : ndarray
+        The result of the backpropagation operation
+    """
+
     delta_conv = np.zeros(conv_shape)
 
     for image in range(len(pos_result)):
@@ -223,6 +269,29 @@ def maxpool_backprop(gradient_values, pos_result, conv_shape):
 
 
 def fast_maxpool_backprop(gradient_values, conv_shape, pos_result, padding=0, stride=2, max_pool_size=2):
+    """
+    Compute the NAIVE backpropagation version through maxpooling layer
+
+    Parameters
+    ----------
+    gradient_values : ndarray
+        Gradient coming from the following layer in the network
+    pos_result : int, optional
+        The position where the maxpooling was applied during the forward pass
+    conv_shape : int, optional
+        The expected output shape
+    padding: int, optional
+        The possible padding applied to the inputs
+    stride: int, optional
+        The stride applied
+    max_pool_size : int, optional
+        The kernel size
+
+    Returns
+    -------
+    delta_conv : ndarray
+        The result of the backpropagation operation
+    """
     n_channels = conv_shape[1]
 
     bp_flattened = gradient_values.reshape(gradient_values.shape[0] * gradient_values.shape[1],

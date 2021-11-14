@@ -3,9 +3,14 @@ import pickle
 import tarfile
 import urllib.request
 import numpy as np
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
 class Cifar10:
+    """
+    Class that provides access to CIFAR10 dataset
+    """
 
     def __init__(self):
 
