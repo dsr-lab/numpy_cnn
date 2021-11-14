@@ -17,6 +17,7 @@ def softmax(scores):
     result : ndarray
         The computed softmax
     """
+    # the subtraction with np.max(scores) is required for having numerical stability
     e_x2 = np.exp(scores - np.max(scores))
     result = e_x2 / e_x2.sum(axis=1, keepdims=1)
 

@@ -132,6 +132,7 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
     # WEIGHT UPDATES
     # ********************
     if OPTIMIZER == 'ADAM':
+        #  g(t+1) from the theory formulas
         optimizer['momentum_w1'] = BETA1 * optimizer['momentum_w1'] + ((1 - BETA1) * d_fc1_w)
         optimizer['momentum_w2'] = BETA1 * optimizer['momentum_w2'] + ((1 - BETA1) * d_fc2_w)
         optimizer['momentum_b0'] = BETA1 * optimizer['momentum_b0'] + ((1 - BETA1) * d_fc1_b)
@@ -139,6 +140,7 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
         optimizer['momentum_conv1'] = BETA1 * optimizer['momentum_conv1'] + ((1 - BETA1) * conv1_delta_w)
         optimizer['momentum_conv2'] = BETA1 * optimizer['momentum_conv2'] + ((1 - BETA1) * conv2_delta_w)
 
+        #  s(t+1) from the theory formulas
         optimizer['velocity_w1'] = BETA2 * optimizer['velocity_w1'] + ((1 - BETA2) * (d_fc1_w ** 2))
         optimizer['velocity_w2'] = BETA2 * optimizer['velocity_w2'] + ((1 - BETA2) * (d_fc2_w ** 2))
         optimizer['velocity_b0'] = BETA2 * optimizer['velocity_b0'] + ((1 - BETA2) * (d_fc1_b ** 2))
@@ -146,7 +148,7 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
         optimizer['velocity_conv1'] = BETA2 * optimizer['velocity_conv1'] + ((1 - BETA2) * (conv1_delta_w ** 2))
         optimizer['velocity_conv2'] = BETA2 * optimizer['velocity_conv2'] + ((1 - BETA2) * (conv2_delta_w ** 2))
 
-        # Corrections
+        # Bias corrections
         momentum_w1_corr = optimizer['momentum_w1'] / (1 - (BETA1 ** n_weight_updates))
         momentum_w2_corr = optimizer['momentum_w2'] / (1 - (BETA1 ** n_weight_updates))
         momentum_b0_corr = optimizer['momentum_b0'] / (1 - (BETA1 ** n_weight_updates))
