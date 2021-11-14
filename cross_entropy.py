@@ -2,6 +2,20 @@ import numpy as np
 
 
 def cross_entropy(scores, targets):
+    """
+    Compute the cross entropy
+
+    Parameters
+    ----------
+    scores : ndarray
+        Scores obtained after passing the last fully connected layer through the softmax
+    targets : int, optional
+        One hot encoding labels
+    Returns
+    -------
+    ce : float
+        The cross entropy loss value
+    """
     # Clip values for numeric stability
     scores = np.clip(scores, 1e-8, 1. - 1e-8)
 

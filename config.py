@@ -1,10 +1,10 @@
 import os
 
-EPOCHS = 30
+EPOCHS = 20
 BATCH_SIZE = 128
 CONV_PADDING = 0
 
-USE_CIFAR_10 = True
+USE_CIFAR_10 = False
 TRAIN_SMALL_DATASET = True  # Just try on dummy dataset
 USE_HE_WEIGHT_INITIALIZATION = True  # True for best results
 

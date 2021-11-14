@@ -1,14 +1,5 @@
-import os
-
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import numpy as np
-from PIL import Image
-
 from config import *
-
-
 # matplotlib.use("TkAgg")
 
 
@@ -436,7 +427,7 @@ def __get_indices(input_shape, filter_h, filter_w, stride=1, pad=0):
 
 
 # ################################################################################
-# SAMPLING
+# RESULTS SAMPLING
 # ################################################################################
 def single_batch_sample(scores, labels):
     predictions = np.argmax(scores, axis=1)

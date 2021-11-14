@@ -3,6 +3,7 @@ import os
 from plots.initializer_comparison_plot import show_initializer_comparison_plots
 from plots.naive_fast_comparison_plot import show_naive_fast_comparison_plots
 from plots.optimizer_comparison_plot import show_optimizer_comparison_plots
+from plots.plot_utils import show_image_from_file
 
 
 def __optimizer_comparison():
@@ -45,6 +46,11 @@ def __naive_vs_fast_comparison():
     show_naive_fast_comparison_plots(naive, fast)
 
     print()
+
+
+def show_architecture():
+    base_path = os.path.join('plots', 'architecture.png')
+    show_image_from_file(base_path, "Architecture Overview")
 
 
 def show_result_plots():

@@ -136,7 +136,8 @@ class Cifar10:
         return \
             self.train_images[:500], self.train_labels[:500], \
             self.validation_images[:100], self.validation_labels[:100], \
-            self.test_images[:100], self.test_labels[:100]
+            self.test_images, self.test_labels
+            #self.test_images[:100], self.test_labels[:100]
 
     def get_datasets(self):
         return \

@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import numpy as np
 import os
 import re
@@ -45,7 +46,6 @@ def get_file_name_from_path(path):
 
 
 def show_gray_scale_image(image, title=None):
-
     image = image.squeeze(axis=0)
     plt.imshow(image, cmap='gray')
     plt.axis('off')
@@ -73,6 +73,16 @@ def normalize_image_0_to_1(image):
     if image.min() < 0:
         return np.interp(image, (image.min(), image.max()), (0, 1))
     return image
+
+
+def show_image_from_file(path, title):
+    img = mpimg.imread(path)
+
+    plt.figure(figsize=(20, 20))
+    plt.title(title, fontdict={'fontsize': 20, 'fontweight': 'bold'})
+    plt.imshow(img)
+    plt.axis('off')
+    plt.show(block=True)
 
 
 def show_image(image, title=None):
