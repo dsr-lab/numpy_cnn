@@ -1,6 +1,7 @@
+from convolution import *
+from max_pooling import *
 from plots.correct_incorrect_plot import correct_incorrect_plot
 from relu import ReLU, dReLU
-from sanity_checks import *
 from softmax import *
 from utils import *
 from cross_entropy import *

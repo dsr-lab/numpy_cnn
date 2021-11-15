@@ -207,7 +207,7 @@ def generate_kernel(input_channels=3, output_channels=16, kernel_h=3, kernel_w=3
 # ################################################################################
 def im2col(images, filter_h, filter_w, stride=1, padding=0):
     """
-    Transform images into matrices
+    Transform images into columns
 
     Parameters
     ----------
@@ -224,26 +224,26 @@ def im2col(images, filter_h, filter_w, stride=1, padding=0):
 
     Returns
     -------
-    image_matrices : ndarray
-        Array containing the images in plain matrix form
+    image_cols : ndarray
+        Array containing the images in column form (2d matrix)
     """
     # Apply the padding
     padded_images = np.pad(images, ((0, 0), (0, 0), (padding, padding), (padding, padding)), mode='constant')
     row_indices, col_indices, channel_matrix = __get_indices(images.shape, filter_h, filter_w, stride, padding)
 
     # Get the image values at the positions indicated by the indices for creating the final matrix.
-    image_matrices = padded_images[:, channel_matrix, row_indices, col_indices]
+    image_cols = padded_images[:, channel_matrix, row_indices, col_indices]
 
     # Create a single matrix that considers all the images concatenating along the last axis
     # (e.g.: horizontally)
-    image_matrices = np.concatenate(image_matrices, axis=-1)
+    image_cols = np.concatenate(image_cols, axis=-1)
 
-    return image_matrices
+    return image_cols
 
 
 def col2im(x_col, x_shape, filter_h, filter_w, stride=1, padding=0):
     """
-    Transform images into matrices
+    Transform columns into images
 
     Parameters
     ----------
@@ -271,16 +271,17 @@ def col2im(x_col, x_shape, filter_h, filter_w, stride=1, padding=0):
     # Add padding if needed.
     input_h_padded, input_w_padded = input_h + 2 * padding, input_w + 2 * padding
 
-    # Init the
+    # Init a variable that has the final size we expect
     x_padded = np.zeros((n_images, n_channels, input_h_padded, input_w_padded))
 
     # Index matrices, necessary to transform our input image into a matrix.
     row_indices, col_indices, ch_indices = __get_indices(x_shape, filter_h, filter_w, stride, padding)
 
-    # Add the number of images dimension by spliting dx_col n_images times
+    # Add the number of images dimension by splitting x_col n_images times
+    # It's basically a horizontal unstacking of the images
     '''
         Example: 
-            1) dx_col has a shape of a 2d matrix (12, 9)
+            1) dx_col has a shape of a 2d matrix (12, 18)
             
             2) We know that n_images = 2
             
@@ -288,14 +289,14 @@ def col2im(x_col, x_shape, filter_h, filter_w, stride=1, padding=0):
     '''
     x_col_reshaped = np.array(np.hsplit(x_col, n_images))
 
-    # Reshape our matrix back to image.
+    # Reshape the matrix back to image.
     # NOTE: slice(None) is used to produce the [::] effect which means 'for every elements'.
     np.add.at(x_padded, (slice(None), ch_indices, row_indices, col_indices), x_col_reshaped)
 
-    # Remove padding from new image if needed.
+    # Remove padding from new image (if needed).
     if padding == 0:
         return x_padded
-    elif type(padding) is int:
+    else:
         return x_padded[:, :, padding:-padding, padding:-padding]
 
 
@@ -420,7 +421,7 @@ def __get_indices(input_shape, filter_h, filter_w, stride=1, pad=0):
 
     # Matrix required for considering different channels while processing
     # the row_indices and column_indices variables.
-    # This is used for reshaping to the final expected output, which should not be a 2d matrix.
+    # This is used for reshaping to the final expected output.
     channel_matrix = np.repeat(np.arange(channels), filter_h * filter_w).reshape(-1, 1)
 
     return row_indices, column_indices, channel_matrix
