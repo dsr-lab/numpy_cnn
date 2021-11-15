@@ -126,11 +126,11 @@ def init_model_weights():
     # Set variables according to the dataset
     # MNIST
     input_channels = 1
-    fan_in = 2304
+    fc1_fan_in = 2304
     # CIFAR10
     if USE_CIFAR_10:
         input_channels = 3
-        fan_in = 3136
+        fc1_fan_in = 3136
 
     if USE_HE_WEIGHT_INITIALIZATION:
         weights = {
@@ -139,14 +139,14 @@ def init_model_weights():
             'conv2_w': generate_kernel(input_channels=8, output_channels=16, kernel_h=3, kernel_w=3),
 
             # Linear layer weights initialization
-            # NOTE: using HE weight initialization (https: // arxiv.org / pdf / 1502.01852.pdf)
-            'fc1_w': np.random.randn(fan_in, 64) / np.sqrt(fan_in / 2),
+            # NOTE: using HE weight initialization (https://arxiv.org/pdf/1502.01852.pdf)
+            'fc1_w': np.random.randn(fc1_fan_in, 64) / np.sqrt(fc1_fan_in / 2),
             'fc1_b': np.zeros((1, 64)),
             'fc2_w': np.random.randn(64, 10) / np.sqrt(64 / 2),
             'fc2_b': np.zeros((1, 10))
         }
     else:
-        fc1_stdv = 1. / np.sqrt(fan_in)
+        fc1_stdv = 1. / np.sqrt(fc1_fan_in)
         fc2_stdv = 1. / np.sqrt(64)
         weights = {
             # Convolutional layer weights initialization
@@ -155,7 +155,7 @@ def init_model_weights():
 
             # Linear layer weights initialization
             # NOTE: using HE weight initialization (https: // arxiv.org / pdf / 1502.01852.pdf)
-            'fc1_w': np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(fan_in, 64)),
+            'fc1_w': np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(fc1_fan_in, 64)),
             'fc1_b': np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(1, 64)),
             'fc2_w': np.random.uniform(low=-fc1_stdv, high=fc1_stdv, size=(64, 10)),
             'fc2_b': np.random.uniform(low=-fc2_stdv, high=fc2_stdv, size=(1, 10))

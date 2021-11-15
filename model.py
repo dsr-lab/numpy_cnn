@@ -203,12 +203,19 @@ def backward(input_data, input_labels_one_hot_encoded, scores, cache, weights, o
 
 def train_model(train_images, train_labels,
                 valid_images, valid_labels, epochs):
-    print('##############################')
-    print('# TRAIN MODEL')
-    print('##############################')
 
     # Flag indicating if the validation is required
     validation_required = valid_images is not None
+
+    suffix = '\n# (Full train set)'
+    if validation_required:
+        suffix = '\n# (Train + validation sets)'
+
+    print('##############################')
+    print(f'# TRAIN MODEL {suffix}')
+    print('##############################')
+
+
 
     # ##############################
     # CREATE BATCHES
