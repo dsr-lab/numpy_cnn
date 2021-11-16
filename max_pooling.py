@@ -91,13 +91,6 @@ def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w
     ))
 
     pos_vector = []
-    '''
-        1) original image channel
-        2) original image row
-        3) original image column
-        5) maxpooled row
-        6) maxpooled column
-    '''
 
     # Cycle all the channels
     for channel in range(0, image.shape[0]):
@@ -125,6 +118,14 @@ def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w
                         #   of the flattened array explained above
                         row, column = np.unravel_index(image_portion.argmax(), image_portion.shape)
 
+                        '''
+                        Pos vector detail:
+                        1) original image channel
+                        2) original image row
+                        3) original image column
+                        5) maxpooled row
+                        6) maxpooled column
+                        '''
                         pos_vector.append([channel, row + height, column + width, output_h_idx, output_w_idx])
 
                         # Perform the max pooling
