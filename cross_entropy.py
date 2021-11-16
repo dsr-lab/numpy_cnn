@@ -16,7 +16,7 @@ def cross_entropy(scores, targets):
     ce : float
         The cross entropy loss value
     """
-    # Clip values for numeric stability
+    # Clip values for numerical stability
     scores = np.clip(scores, 1e-8, 1. - 1e-8)
 
     # Number of samples

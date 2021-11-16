@@ -4,8 +4,8 @@ from plots.plot_utils import *
 def show_naive_fast_comparison_plots(naive_file_path, fast_file_path):
 
     fig, (ax1) = plt.subplots(1, 1)
-    #fig.set_figwidth(20)
-    #fig.set_figheight(20)
+    fig.set_figwidth(8)
+    fig.set_figheight(6)
 
     plt.text(x=0.5, y=0.94, s=f"Naive VS Fast implementation", fontsize=18,
              ha="center", transform=fig.transFigure)

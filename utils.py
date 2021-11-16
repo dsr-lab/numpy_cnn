@@ -132,6 +132,7 @@ def init_model_weights():
         input_channels = 3
         fc1_fan_in = 3136
 
+    # w = G(0.0, sqrt(2 / n))
     if USE_HE_WEIGHT_INITIALIZATION:
         weights = {
             # Convolutional layer weights initialization
@@ -145,6 +146,8 @@ def init_model_weights():
             'fc2_w': np.random.randn(64, 10) / np.sqrt(64 / 2),
             'fc2_b': np.zeros((1, 10))
         }
+    # Uniform distribution:
+    # U[-1/sqrt(fan_in), +1/sqrt(fan_in)]
     else:
         fc1_stdv = 1. / np.sqrt(fc1_fan_in)
         fc2_stdv = 1. / np.sqrt(64)

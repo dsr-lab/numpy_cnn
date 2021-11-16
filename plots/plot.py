@@ -50,7 +50,7 @@ def __naive_vs_fast_comparison():
 
 def show_architecture():
     base_path = os.path.join('plots', 'architecture.png')
-    show_image_from_file(base_path, "Architecture Overview")
+    show_image_from_file(base_path, "Architecture Overview", block=True)
 
 
 def show_result_plots():

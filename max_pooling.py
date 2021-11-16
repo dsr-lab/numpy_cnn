@@ -119,7 +119,10 @@ def __process_single_image(image, stride, output_h, output_w, filter_h, filter_w
                     if image_portion.shape[1] < filter_w:
                         continue
                     else:
-                        # get the indexes where the maximum value has been found
+                        # get the indexes where the maximum value has been found:
+                        # - the argmax without axis returns the index of the maximum element of the flattened array
+                        # - the unravel_index extract the row and the column by considering the index
+                        #   of the flattened array explained above
                         row, column = np.unravel_index(image_portion.argmax(), image_portion.shape)
 
                         pos_vector.append([channel, row + height, column + width, output_h_idx, output_w_idx])
@@ -257,6 +260,7 @@ def maxpool_backprop(gradient_values, pos_result, conv_shape):
         indices = pos_result[image]
         for p in indices:
             '''
+                p contains the following values:
                 0) original image channel
                 1) original image row
                 2) original image column

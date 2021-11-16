@@ -75,14 +75,14 @@ def normalize_image_0_to_1(image):
     return image
 
 
-def show_image_from_file(path, title):
+def show_image_from_file(path, title, block=True):
     img = mpimg.imread(path)
 
     plt.figure(figsize=(20, 20))
     plt.title(title, fontdict={'fontsize': 20, 'fontweight': 'bold'})
     plt.imshow(img)
     plt.axis('off')
-    plt.show(block=True)
+    plt.show(block=block)
 
 
 def show_image(image, title=None):
