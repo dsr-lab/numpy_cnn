@@ -7,3 +7,5 @@ The model has been trained both on CIFAR10 and MNIST.
 
 ## TODO
 * Add bias to convolutional layers
+* complete the documentation by adding examples for better understanding the math
+* remove some configuration flags useful for the project presentation only
