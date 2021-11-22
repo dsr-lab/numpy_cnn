@@ -7,6 +7,10 @@ The architecture is based on a VGG block, and the goal is to perform image class
 
 The model has been trained both on CIFAR10 and MNIST.
 
+In the *config.py* it is possible to set variables that allow to change some model parameters (e.g.: dataset, optimizer, convolution type, ...).
+
+To run the project just start the *main.py* file.
+
 ## TODO
 * Add bias to convolutional layers
 * complete the documentation by adding examples for better understanding the math
